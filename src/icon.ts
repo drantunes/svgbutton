@@ -1,7 +1,7 @@
 import { SaxesParser } from "saxes"
 import { numberList, pathData, PATH_COMMAND_LIMIT, svgNumber, transformList, viewBox } from "./geometry.ts"
 import type { ViewBox } from "./geometry.ts"
-import { byteLength, color, escapeXml, InputError, MAX_ICON_BYTES, SVG_NS } from "./values.ts"
+import { byteLength, color, defaults, escapeXml, ICON_CENTER, InputError, MAX_ICON_BYTES, SVG_NS } from "./values.ts"
 
 type Shape = {
   name: string
@@ -222,5 +222,6 @@ export function renderIcon(icon: IconGeometry, ink: string): string {
   const root = monochrome ? recolor(icon.root, ink, "#000000") : icon.root
   // Clip and center the imported viewBox within the 20 × 20 icon area.
   const group = serializeNode({ ...root, name: "g" })
-  return `<svg x="10.67745" y="7" width="20" height="20" viewBox="${icon.viewBox.join(" ")}" preserveAspectRatio="xMidYMid meet" overflow="hidden" fill="${monochrome ? ink : "#000000"}" color="${ink}">${group}</svg>`
+  const size = defaults.iconSize
+  return `<svg x="${ICON_CENTER.x - size / 2}" y="${ICON_CENTER.y - size / 2}" width="${size}" height="${size}" viewBox="${icon.viewBox.join(" ")}" preserveAspectRatio="xMidYMid meet" overflow="hidden" fill="${monochrome ? ink : "#000000"}" color="${ink}">${group}</svg>`
 }

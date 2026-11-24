@@ -1,4 +1,4 @@
-import { BUTTON_PATH, defaults } from "./values.ts"
+import { BUTTON_PATH, defaults, ICON_SIZE_RANGE } from "./values.ts"
 
 function EditorPage() {
   return (
@@ -7,7 +7,7 @@ function EditorPage() {
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#f5f3ee" />
-        <title>Mastra Button · SVG Buttons for GitHub</title>
+        <title>SVG Button · GitHub README buttons</title>
         <link rel="stylesheet" href="/editor.css" />
         <script type="module" src="/editor.js"></script>
       </head>
@@ -15,10 +15,18 @@ function EditorPage() {
         <main class="shell">
           <header class="intro">
             <div>
-              <h1>Mastra Button<span>.</span></h1>
+              <h1>SVG Button<span>.</span></h1>
               <p>Customize an SVG button for your project's README.</p>
             </div>
-            <button id="theme-toggle" type="button" aria-pressed="false" hidden>Dark mode</button>
+            <button id="theme-toggle" type="button" aria-label="Dark mode" aria-pressed="false" hidden>
+              <svg class="theme-icon theme-icon-light" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+                <circle cx="12" cy="12" r="4" />
+                <path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42m0-14.14-1.42 1.42m-11.3 11.3-1.42 1.42" />
+              </svg>
+              <svg class="theme-icon theme-icon-dark" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round">
+                <path d="M20.7 15.4A8.9 8.9 0 0 1 8.6 3.3 9 9 0 1 0 20.7 15.4Z" />
+              </svg>
+            </button>
           </header>
 
           <form id="editor" class="workspace">
@@ -61,7 +69,7 @@ function EditorPage() {
               <fieldset>
                 <legend>Icon</legend>
                 <div class="fields">
-                  <label>Source
+                  <label class="full">Source
                     <select name="source">
                       <option value="mastra">Mastra</option>
                       <option value="none">No icon</option>
@@ -71,6 +79,9 @@ function EditorPage() {
                     </select>
                   </label>
                   <label>Icon color <input name="iconColor" value={defaults.iconColor} spellcheck={false} /></label>
+                  <label>Icon size (px)
+                    <input name="iconSize" type="number" min={ICON_SIZE_RANGE.min} max={ICON_SIZE_RANGE.max} step="any" value={defaults.iconSize} />
+                  </label>
                 </div>
                 <section id="simple-icons-fields" class="extra fields" hidden>
                   <label class="full">Search Simple Icons

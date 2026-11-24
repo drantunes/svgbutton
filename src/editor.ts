@@ -20,7 +20,7 @@ const importFile = form.elements.namedItem("importFile") as HTMLInputElement
 const importSource = form.elements.namedItem("importSource") as HTMLTextAreaElement
 const simpleIcons = setupSimpleIconsPicker(render)
 
-const fields = ["text", "bg", "fg", "border", "borderWidth", "radius", "divider", "iconColor", "scale", "rev"]
+const fields = ["text", "bg", "fg", "border", "borderWidth", "radius", "divider", "iconColor", "iconSize", "scale", "rev"]
 let previewUrl = ""
 let publishedUrl = ""
 let importedIcon = ""

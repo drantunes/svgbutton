@@ -4,12 +4,12 @@ import type { IconGeometry } from "./icon.ts"
 import { DEPLOY_PATH, MASTRA_PATHS } from "./preset.ts"
 import {
   BUTTON_PATH, byteLength, color, decimal, decodeIcon, defaults, encodeIcon, escapeXml,
-  InputError, isSimpleIconSlug, MAX_TEXT_LENGTH, MAX_URL_BYTES, SVG_NS,
+  ICON_CENTER, ICON_SIZE_RANGE, InputError, isSimpleIconSlug, MAX_TEXT_LENGTH, MAX_URL_BYTES, SVG_NS,
 } from "./values.ts"
 
 const keys = [
   "text", "bg", "fg", "border", "borderWidth", "radius", "divider", "iconColor",
-  "icon", "iconPath", "iconViewBox", "iconSvg", "scale", "rev",
+  "iconSize", "icon", "iconPath", "iconViewBox", "iconSvg", "scale", "rev",
 ] as const
 const known = new Set<string>(keys)
 
@@ -27,6 +27,7 @@ type Button = {
   radius: number
   divider: string
   iconColor: string
+  iconSize: number
   icon: Icon
   scale: number
   rev: string
@@ -85,6 +86,7 @@ export function parseButton(params: URLSearchParams): Button {
     border: readColor("border"),
     divider: readColor("divider"),
     iconColor: readColor("iconColor"),
+    iconSize: decimal(params.get("iconSize") ?? String(defaults.iconSize), "iconSize", ICON_SIZE_RANGE.min, ICON_SIZE_RANGE.max),
     borderWidth: decimal(params.get("borderWidth") ?? String(defaults.borderWidth), "borderWidth", 0, 8),
     radius: decimal(params.get("radius") ?? String(defaults.radius), "radius", 0, 17),
     scale: decimal(params.get("scale") ?? String(defaults.scale), "scale", 0.5, 3),
@@ -133,6 +135,13 @@ export function renderButton(button: Button, simpleIcon?: IconGeometry): string 
   if (hasIcon) {
     lines.push(`<line x1="38.5" y1="5" x2="38.5" y2="29" stroke="${divider}" stroke-opacity="0.6"/>`)
   }
+  const resizeIcon = hasIcon && button.iconSize !== defaults.iconSize
+  if (resizeIcon) {
+    const factor = button.iconSize / defaults.iconSize
+    const x = svgNumber(ICON_CENTER.x * (1 - factor))
+    const y = svgNumber(ICON_CENTER.y * (1 - factor))
+    lines.push(`<g transform="translate(${x} ${y}) scale(${svgNumber(factor)})">`)
+  }
   if (icon.kind === "mastra") {
     for (const d of MASTRA_PATHS) lines.push(`<path d="${d}" fill="${ink}"/>`)
   } else if (icon.kind === "simple") {
@@ -141,6 +150,7 @@ export function renderButton(button: Button, simpleIcon?: IconGeometry): string 
   } else if ("geometry" in icon) {
     lines.push(renderIcon(icon.geometry, ink))
   }
+  if (resizeIcon) lines.push("</g>")
 
   if (outlined) {
     lines.push(`<path d="${DEPLOY_PATH}" fill="${fg}"${hasIcon ? "" : ' transform="translate(-35 0)"'}/>`)

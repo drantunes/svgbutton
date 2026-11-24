@@ -97,8 +97,11 @@ test("the local Worker serves the editor and its assets and handles routing", as
   assert.match(index.headers.get("content-security-policy") ?? "", /script-src 'self'.*img-src 'self' blob:/)
   const markup = await index.text()
   assert.match(markup, /^<!doctype html>/)
+  assert.match(markup, /<title>SVG Button · GitHub README buttons<\/title>/)
   assert.ok(markup.includes(`src="${BUTTON_PATH}"`))
-  assert.match(markup, /id="theme-toggle"[^>]*>Dark mode/)
+  assert.match(markup, /id="theme-toggle"[^>]*aria-label="Dark mode"[^>]*><svg class="theme-icon theme-icon-light"/)
+  assert.match(markup, /class="theme-icon theme-icon-dark"/)
+  assert.match(markup, /name="iconSize" type="number" min="8" max="24" step="any" value="20"/)
   assert.match(markup, /<option value="simple-icons">Simple Icons<\/option>/)
   assert.match(index.headers.get("content-security-policy") ?? "", /connect-src 'self' https:/)
   assert.match(markup, /Destination URL[\s\S]*Copy Markdown[\s\S]*Copy SVG URL[\s\S]*Download SVG/)
@@ -135,7 +138,7 @@ test("a Simple Icons slug produces the same cacheable button as an embedded SVG"
   const icon = await server.fetch("/simple-icons/github.svg")
   assert.equal(icon.status, 200)
   const svg = await icon.text()
-  const options = { text: "GitHub", iconColor: "#78cfff" }
+  const options = { text: "GitHub", iconColor: "#78cfff", iconSize: "10" }
   const shortPath = path({ ...options, icon: "github" })
   const embedded = await server.fetch(path({ ...options, iconSvg: encodeIcon(svg) }))
   const response = await server.fetch(shortPath)
@@ -144,6 +147,7 @@ test("a Simple Icons slug produces the same cacheable button as an embedded SVG"
   assert.equal(response.headers.get("cache-control"), "public, max-age=86400")
   const rendered = await response.text()
   assert.match(rendered, /fill="#78cfff"/)
+  assert.match(rendered, /<g transform="translate\(10.338725 8.5\) scale\(0.5\)">/)
   assert.equal(rendered, await embedded.text())
 
   const head = await server.fetch(shortPath, { method: "HEAD" })

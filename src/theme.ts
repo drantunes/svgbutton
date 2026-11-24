@@ -1,4 +1,4 @@
-const themeKey = "mastra-button-theme"
+const themeKey = "svgbutton-theme"
 
 export function setupTheme() {
   const root = document.documentElement
@@ -7,7 +7,7 @@ export function setupTheme() {
   const system = matchMedia("(prefers-color-scheme: dark)")
 
   try {
-    const saved = localStorage.getItem(themeKey)
+    const saved = localStorage.getItem(themeKey) ?? localStorage.getItem("mastra-button-theme")
     if (saved === "light" || saved === "dark") root.dataset.theme = saved
   } catch {
     // Follow the system theme when storage is unavailable.
@@ -16,6 +16,7 @@ export function setupTheme() {
   function updateToggle() {
     const dark = root.dataset.theme ? root.dataset.theme === "dark" : system.matches
     toggle.setAttribute("aria-pressed", String(dark))
+    toggle.title = dark ? "Switch to light mode" : "Switch to dark mode"
     themeColor.content = getComputedStyle(root).backgroundColor
   }
 

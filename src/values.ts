@@ -4,6 +4,8 @@ export const MAX_ICON_BYTES = 16 * 1024
 export const MAX_PATH_LENGTH = 8192
 export const MAX_TEXT_LENGTH = 120
 export const BUTTON_PATH = "/v1/button.svg"
+export const ICON_CENTER = { x: 20.67745, y: 17 }
+export const ICON_SIZE_RANGE = { min: 8, max: 24 }
 
 export const defaults = {
   text: "Deploy",
@@ -14,6 +16,7 @@ export const defaults = {
   radius: 6,
   divider: "#3a3a3a",
   iconColor: "#f2f2f2",
+  iconSize: 20,
   scale: 1,
   rev: "",
 } as const

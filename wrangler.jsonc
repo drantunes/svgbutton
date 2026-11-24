@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "mastra-button",
+  "name": "svgbutton",
   "main": "src/worker.ts",
   "compatibility_date": "2026-11-24",
   "workers_dev": true,

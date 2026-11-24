@@ -36,6 +36,10 @@ body { margin: 0; }
 .intro h1 span { color: var(--accent); }
 .intro p { margin: .85rem 0 0; color: var(--muted); }
 
+#theme-toggle { display: inline-grid; place-items: center; width: 2.5rem; height: 2.5rem; padding: 0; flex: none; }
+#theme-toggle[aria-pressed="false"] .theme-icon-dark,
+#theme-toggle[aria-pressed="true"] .theme-icon-light { display: none; }
+
 .workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.25rem; align-items: start; }
 .controls { display: grid; gap: .8rem; min-width: 0; }
 fieldset, .result {

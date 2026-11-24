@@ -42,6 +42,20 @@ test("colors, border width, and radius are independent", () => {
   assert.throws(() => render({ fg: "url(https://example.org/p)" }), /fg/)
 })
 
+test("icon size scales around the icon center without moving the divider or label", () => {
+  const size = { iconSize: "10" }
+  const svg = render(size)
+  assert.match(svg, /width="110" height="34"/)
+  assert.match(svg, /<line x1="38.5"[^>]*\/>\n<g transform="translate\(10.338725 8.5\) scale\(0.5\)">/)
+  assert.ok(svg.includes(`</g>\n<path d="${DEPLOY_PATH}"`))
+  assert.match(render({ ...size, iconPath: "M0 0L4 2Z", iconViewBox: "0 0 4 2" }),
+    /scale\(0.5\)">\n<svg x="10.67745" y="7" width="20" height="20"/)
+  assert.equal(render({ ...size, icon: "none" }), render({ icon: "none" }))
+  assert.equal(render({ iconSize: "20.0" }), render())
+  assert.throws(() => render({ iconSize: "7.9" }), /iconSize/)
+  assert.throws(() => render({ iconSize: "24.1" }), /iconSize/)
+})
+
 test("iconless and path layouts work and icon sources are mutually exclusive", () => {
   assert.doesNotMatch(render({ icon: "none" }), /<line/)
   const svg = render({ iconPath: "M 0 0 L 4 2 Z", iconViewBox: "0,0,4,2", iconColor: "green" })
@@ -88,8 +102,8 @@ test("URL generation orders parameters, omits defaults, and separates the destin
   const iconButton = parseButton(new URLSearchParams({ iconSvg: encodeIcon(monoIcon) }))
   const iconUrl = buttonUrl(origin, iconButton)!
   assert.equal(renderButton(parseButton(iconUrl.searchParams)), renderButton(iconButton))
-  const simpleButton = parseButton(new URLSearchParams("scale=1.0&icon=github&text=GitHub"))
-  assert.equal(buttonUrl(origin, simpleButton)?.href, `${origin}/v1/button.svg?text=GitHub&icon=github`)
+  const simpleButton = parseButton(new URLSearchParams("scale=1.0&icon=github&iconSize=12.0&text=GitHub"))
+  assert.equal(buttonUrl(origin, simpleButton)?.href, `${origin}/v1/button.svg?text=GitHub&iconSize=12&icon=github`)
 })
 
 test("local rendering remains available when the SVG exceeds the URL limit", () => {
