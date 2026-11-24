@@ -10,6 +10,6 @@
     "watch_dir": "src"
   },
   "rules": [
-    { "type": "Text", "globs": ["**/*.html", "**/*.css", "**/*.txt"], "fallthrough": false }
+    { "type": "Text", "globs": ["**/*.css", "**/*.txt"], "fallthrough": false }
   ]
 }

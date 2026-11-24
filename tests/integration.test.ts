@@ -21,8 +21,12 @@ test("GET serves the preset and HEAD returns matching headers with no body", asy
   assert.equal(head.status, 200)
   assert.equal(get.headers.get("content-type"), "image/svg+xml; charset=utf-8")
   assert.equal(get.headers.get("cache-control"), "public, max-age=86400")
-  assert.equal(head.headers.get("content-type"), get.headers.get("content-type"))
-  assert.equal(head.headers.get("cache-control"), get.headers.get("cache-control"))
+  assert.equal(get.headers.get("content-security-policy"), "default-src 'none'; sandbox")
+  assert.equal(get.headers.get("x-content-type-options"), "nosniff")
+  assert.equal(get.headers.get("referrer-policy"), "no-referrer")
+  for (const header of ["content-type", "cache-control", "content-security-policy", "x-content-type-options", "referrer-policy"]) {
+    assert.equal(head.headers.get(header), get.headers.get(header))
+  }
   assert.equal(head.body, null)
   assert.equal(await head.text(), "")
   assert.equal(createHash("sha256").update(await get.text()).digest("hex"), presetHash)
@@ -57,13 +61,15 @@ test("the Worker revalidates API inputs and sends no-store on errors", async () 
     { icon: "none", iconSvg: encodeIcon(monoIcon) },
     { scale: "0.25" },
     { fg: "url(https://example.org/icon.svg)" },
+    { unexpected: "true" },
   ]
   for (const params of options) {
     const error = await server.fetch(path(params))
     assert.equal(error.status, 400, await error.clone().text())
     assert.equal(error.headers.get("cache-control"), "no-store")
-    assert.match(error.headers.get("content-type") ?? "", /^text\/plain/)
+    assert.equal(error.headers.get("content-type"), "text/plain; charset=utf-8")
   }
+  assert.equal((await server.fetch(`${BUTTON_PATH}?scale=1&scale=2`)).status, 400)
   const errorHead = await server.fetch(path({ scale: "9" }), { method: "HEAD" })
   assert.equal(errorHead.status, 400)
   assert.equal(await errorHead.text(), "")
@@ -86,11 +92,32 @@ test("the local Worker serves the editor and its assets and handles routing", as
   const index = await server.fetch("/")
   assert.equal(index.status, 200)
   assert.equal(index.headers.get("cache-control"), "no-store")
-  assert.match(await index.text(), /Destination URL[\s\S]*Copy Markdown[\s\S]*Copy SVG URL[\s\S]*Download SVG/)
-  for (const resource of ["/editor.js", "/editor.css"]) assert.equal((await server.fetch(resource)).status, 200)
-  assert.equal((await server.fetch("/missing")).status, 404)
-  const rejected = await server.fetch(BUTTON_PATH, { method: "POST" })
-  assert.equal(rejected.status, 405)
-  assert.equal(rejected.headers.get("allow"), "GET, HEAD")
-  assert.equal(rejected.headers.get("cache-control"), "no-store")
+  assert.equal(index.headers.get("content-type"), "text/html; charset=utf-8")
+  assert.match(index.headers.get("content-security-policy") ?? "", /script-src 'self'.*img-src 'self' blob:/)
+  const markup = await index.text()
+  assert.match(markup, /^<!doctype html>/)
+  assert.ok(markup.includes(`src="${BUTTON_PATH}"`))
+  assert.match(markup, /Destination URL[\s\S]*Copy Markdown[\s\S]*Copy SVG URL[\s\S]*Download SVG/)
+  const assets = [
+    ["/editor.js", "text/javascript; charset=utf-8"],
+    ["/editor.css", "text/css; charset=utf-8"],
+  ]
+  for (const [resource, type] of assets) {
+    const response = await server.fetch(resource)
+    assert.equal(response.status, 200)
+    assert.equal(response.headers.get("content-type"), type)
+    assert.equal(response.headers.get("cache-control"), "no-store")
+    assert.ok(markup.includes(`"${resource}"`))
+  }
+  for (const missing of ["/missing", `${BUTTON_PATH}/`, "/v1/%62utton.svg"]) {
+    const response = await server.fetch(missing)
+    assert.equal(response.status, 404)
+    assert.equal(response.headers.get("cache-control"), "no-store")
+  }
+  for (const route of [BUTTON_PATH, "/", ...assets.map(([path]) => path)]) {
+    const rejected = await server.fetch(route, { method: "POST" })
+    assert.equal(rejected.status, 405)
+    assert.equal(rejected.headers.get("allow"), "GET, HEAD")
+    assert.equal(rejected.headers.get("cache-control"), "no-store")
+  }
 })
