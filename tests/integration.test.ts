@@ -97,6 +97,9 @@ test("the local Worker serves the editor and its assets and handles routing", as
   const markup = await index.text()
   assert.match(markup, /^<!doctype html>/)
   assert.ok(markup.includes(`src="${BUTTON_PATH}"`))
+  assert.match(markup, /id="theme-toggle"[^>]*>Dark mode/)
+  assert.match(markup, /<option value="simple-icons">Simple Icons<\/option>/)
+  assert.match(index.headers.get("content-security-policy") ?? "", /connect-src 'self' https:/)
   assert.match(markup, /Destination URL[\s\S]*Copy Markdown[\s\S]*Copy SVG URL[\s\S]*Download SVG/)
   const assets = [
     ["/editor.js", "text/javascript; charset=utf-8"],
@@ -120,4 +123,23 @@ test("the local Worker serves the editor and its assets and handles routing", as
     assert.equal(rejected.headers.get("allow"), "GET, HEAD")
     assert.equal(rejected.headers.get("cache-control"), "no-store")
   }
+})
+
+test("a Simple Icons asset produces a standalone, cacheable button URL", async () => {
+  const catalog = await server.fetch("/simple-icons/catalog.json")
+  assert.equal(catalog.status, 200)
+  const brands = await catalog.json() as [slug: string, title: string][]
+  assert.ok(brands.some(([slug, title]) => slug === "github" && title === "GitHub"))
+
+  const icon = await server.fetch("/simple-icons/github.svg")
+  assert.equal(icon.status, 200)
+  const svg = await icon.text()
+  const button = parseButton(new URLSearchParams({ iconSvg: encodeIcon(svg) }))
+  const url = buttonUrl("https://button.example", button)!
+  assert.ok(url.searchParams.has("iconSvg"))
+
+  const response = await server.fetch(url.href)
+  assert.equal(response.status, 200)
+  assert.equal(response.headers.get("cache-control"), "public, max-age=86400")
+  assert.equal(await response.text(), renderButton(button))
 })

@@ -1,5 +1,7 @@
 import { buttonUrl, markdown, parseButton, renderButton } from "./button.ts"
 import { normalizedSvg, parseSvg } from "./icon.ts"
+import { setupSimpleIconsPicker } from "./simple-icons-picker.ts"
+import { setupTheme } from "./theme.ts"
 import { byteLength, encodeIcon, InputError, MAX_ICON_BYTES } from "./values.ts"
 
 const form = document.querySelector<HTMLFormElement>("#editor")!
@@ -16,6 +18,7 @@ const copyUrl = document.querySelector<HTMLButtonElement>("#copy-url")!
 const download = document.querySelector<HTMLButtonElement>("#download")!
 const importFile = form.elements.namedItem("importFile") as HTMLInputElement
 const importSource = form.elements.namedItem("importSource") as HTMLTextAreaElement
+const simpleIcons = setupSimpleIconsPicker(render)
 
 const fields = ["text", "bg", "fg", "border", "borderWidth", "radius", "divider", "iconColor", "scale", "rev"]
 let previewUrl = ""
@@ -52,6 +55,7 @@ function render() {
   const source = field("source")
   pathFields.hidden = source !== "path"
   svgFields.hidden = source !== "svg"
+  simpleIcons.show(source === "simple-icons")
   setStatus(actionStatus, "")
   setStatus(renderStatus, "")
   output.value = ""
@@ -67,6 +71,9 @@ function render() {
     } else if (source === "svg") {
       if (!importedIcon) throw new InputError("Import an SVG from a URL, a file, or pasted markup.")
       params.set("iconSvg", importedIcon)
+    } else if (source === "simple-icons") {
+      if (!simpleIcons.value) throw new InputError("Choose a brand from Simple Icons.")
+      params.set("iconSvg", simpleIcons.value)
     } else {
       params.set("icon", source)
     }
@@ -210,4 +217,5 @@ download.addEventListener("click", () => {
   link.click()
   setStatus(actionStatus, "SVG download started.")
 })
+setupTheme()
 render()

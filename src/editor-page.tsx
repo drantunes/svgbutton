@@ -14,8 +14,11 @@ function EditorPage() {
       <body>
         <main class="shell">
           <header class="intro">
-            <h1>Mastra Button<span>.</span></h1>
-            <p>Customize an SVG button for your project's README.</p>
+            <div>
+              <h1>Mastra Button<span>.</span></h1>
+              <p>Customize an SVG button for your project's README.</p>
+            </div>
+            <button id="theme-toggle" type="button" aria-pressed="false" hidden>Dark mode</button>
           </header>
 
           <form id="editor" class="workspace">
@@ -62,12 +65,23 @@ function EditorPage() {
                     <select name="source">
                       <option value="mastra">Mastra</option>
                       <option value="none">No icon</option>
+                      <option value="simple-icons">Simple Icons</option>
                       <option value="path">SVG path</option>
                       <option value="svg">Import SVG</option>
                     </select>
                   </label>
                   <label>Icon color <input name="iconColor" value={defaults.iconColor} spellcheck={false} /></label>
                 </div>
+                <section id="simple-icons-fields" class="extra fields" hidden>
+                  <label class="full">Search Simple Icons
+                    <input id="simple-icons-search" type="search" placeholder="e.g. GitHub" autocomplete="off" />
+                  </label>
+                  <label class="full">Brand
+                    <select id="simple-icons-list" size={6} aria-describedby="simple-icons-results" disabled></select>
+                  </label>
+                  <small id="simple-icons-results" class="full hint" role="status"></small>
+                  <small id="simple-icons-status" class="full hint" role="status"></small>
+                </section>
                 <section id="path-fields" class="extra fields" hidden>
                   <label class="full">Path (d)
                     <textarea name="iconPath" rows={2} placeholder="M0 0H24V24H0Z" spellcheck={false}></textarea>

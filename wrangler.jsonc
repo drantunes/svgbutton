@@ -5,9 +5,10 @@
   "compatibility_date": "2026-11-24",
   "workers_dev": true,
   "cache": { "enabled": true },
+  "assets": { "directory": "./dist/assets" },
   "build": {
-    "command": "npm run build:editor",
-    "watch_dir": "src"
+    "command": "npm run build:icons && npm run build:editor",
+    "watch_dir": ["src", "scripts"]
   },
   "rules": [
     { "type": "Text", "globs": ["**/*.css", "**/*.txt"], "fallthrough": false }

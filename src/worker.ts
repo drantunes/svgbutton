@@ -5,7 +5,7 @@ import { BUTTON_PATH, byteLength, InputError, MAX_URL_BYTES } from "./values.ts"
 import styles from "./editor.css"
 import script from "../dist/editor.js.txt"
 
-const editorPolicy = "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' blob:; connect-src https:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+const editorPolicy = "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' blob:; connect-src 'self' https:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
 const svgPolicy = "default-src 'none'; sandbox"
 
 const app = new Hono({

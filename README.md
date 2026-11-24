@@ -17,6 +17,10 @@ Open [localhost:8787](http://localhost:8787/) to edit a button. Set the destinat
 [![Deploy](https://mastra-button.YOUR_SUBDOMAIN.workers.dev/v1/button.svg)](https://example.com/deploy)
 ```
 
+Pick **Simple Icons** to search for a brand logo. The editor loads the icon from this site and embeds it in the SVG URL. The catalog includes icons that fit the renderer's SVG limits. Check [Simple Icons' brand usage notes](https://github.com/simple-icons/simple-icons/blob/develop/DISCLAIMER.md) before using a logo.
+
+The editor follows your system theme until you switch **Dark mode**. Your choice stays in this browser.
+
 ## API
 
 `GET /v1/button.svg` returns `image/svg+xml`. `HEAD` returns the same status and headers with an empty body. Invalid, unknown, or duplicate parameters return `400`. URLs over 8,192 bytes return `414`. Other methods return `405` with `Allow: GET, HEAD`.
@@ -65,11 +69,18 @@ Import limits are 16 KiB of UTF-8 XML, 128 elements, 16 levels of nesting, and 5
 npm run check
 npm test
 npm run deploy:check
-npx wrangler login
-npm run deploy
 ```
 
 `npm test` runs the unit tests and the HTTP tests against Wrangler's local runtime. `npm run deploy:check` builds the Worker without publishing it.
+
+GitHub Actions tests every push and deploys `main` after the tests pass. Add these in [Settings → Secrets and variables → Actions](https://github.com/drantunes/mastra-button/settings/secrets/actions).
+
+| Name | Store as | Where to get it |
+| --- | --- | --- |
+| `CLOUDFLARE_API_TOKEN` | Repository secret | [Cloudflare API Tokens](https://dash.cloudflare.com/profile/api-tokens). Use the **Edit Cloudflare Workers** template and select your account. |
+| `CLOUDFLARE_ACCOUNT_ID` | [Repository variable](https://github.com/drantunes/mastra-button/settings/variables/actions) | Copy the ID from [Workers & Pages](https://developers.cloudflare.com/fundamentals/account/find-account-and-zone-ids/#find-account-id-in-workers--pages). |
+
+Until both values are set, the deploy job reports a skip. After setup, run the workflow from the [Actions tab](https://github.com/drantunes/mastra-button/actions) or push to `main`. If your token is restricted to an existing Worker, create `mastra-button` first with `npx wrangler login` and `npm run deploy`. [Cloudflare Workers permissions](https://developers.cloudflare.com/workers/authorization/)
 
 ## Cache
 
