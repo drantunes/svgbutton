@@ -88,6 +88,8 @@ test("URL generation orders parameters, omits defaults, and separates the destin
   const iconButton = parseButton(new URLSearchParams({ iconSvg: encodeIcon(monoIcon) }))
   const iconUrl = buttonUrl(origin, iconButton)!
   assert.equal(renderButton(parseButton(iconUrl.searchParams)), renderButton(iconButton))
+  const simpleButton = parseButton(new URLSearchParams("scale=1.0&icon=github&text=GitHub"))
+  assert.equal(buttonUrl(origin, simpleButton)?.href, `${origin}/v1/button.svg?text=GitHub&icon=github`)
 })
 
 test("local rendering remains available when the SVG exceeds the URL limit", () => {

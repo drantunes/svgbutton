@@ -2,7 +2,7 @@ import { createHash } from "node:crypto"
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises"
 import type { SimpleIcon } from "simple-icons"
 import { normalizedSvg, parseSvg } from "../src/icon.ts"
-import { byteLength, InputError, MAX_ICON_BYTES } from "../src/values.ts"
+import { byteLength, InputError, isSimpleIconSlug, MAX_ICON_BYTES } from "../src/values.ts"
 
 const output = new URL("../dist/assets/simple-icons/", import.meta.url)
 const catalogFile = new URL("catalog.json", output)
@@ -28,6 +28,7 @@ if (lastBuild !== fingerprint || !catalog) {
   await mkdir(output, { recursive: true })
 
   for (const { slug, title, svg } of icons) {
+    if (!isSimpleIconSlug(slug)) continue
     let normalized: string
     try {
       normalized = normalizedSvg(parseSvg(svg))
@@ -43,5 +44,5 @@ if (lastBuild !== fingerprint || !catalog) {
   entries.sort((a, b) => a[1].localeCompare(b[1], "en"))
   await writeFile(catalogFile, JSON.stringify(entries))
   await writeFile(stamp, fingerprint)
-  console.log(`Built ${entries.length} Simple Icons (${icons.length - entries.length} exceed the SVG limits).`)
+  console.log(`Built ${entries.length} Simple Icons (${icons.length - entries.length} skipped).`)
 }

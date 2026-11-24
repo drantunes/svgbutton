@@ -1,6 +1,8 @@
-import { encodeIcon } from "./values.ts"
+import { parseSvg, type IconGeometry } from "./icon.ts"
+import { simpleIconAssetPath } from "./values.ts"
 
 type Icon = [slug: string, title: string]
+type Selection = { slug: string; geometry: IconGeometry }
 
 const resultLimit = 60
 
@@ -13,7 +15,7 @@ export function setupSimpleIconsPicker(onIconChange: () => void) {
   let catalog: Icon[] | undefined
   let loading = false
   let selected = ""
-  let encoded = ""
+  let icon: Selection | undefined
   let selection = 0
 
   function updateResults() {
@@ -51,16 +53,16 @@ export function setupSimpleIconsPicker(onIconChange: () => void) {
 
     const request = ++selection
     selected = slug
-    encoded = ""
+    icon = undefined
     status.textContent = `Loading ${title}…`
     onIconChange()
 
     try {
-      const response = await fetch(`/simple-icons/${encodeURIComponent(slug)}.svg`)
+      const response = await fetch(simpleIconAssetPath(slug))
       if (!response.ok) throw new Error()
-      const svg = encodeIcon(await response.text())
+      const geometry = parseSvg(await response.text())
       if (request !== selection) return
-      encoded = svg
+      icon = { slug, geometry }
       status.textContent = `Selected ${title}.`
       onIconChange()
     } catch {
@@ -75,7 +77,7 @@ export function setupSimpleIconsPicker(onIconChange: () => void) {
   list.addEventListener("change", () => { void chooseIcon() })
 
   return {
-    get value() { return encoded },
+    get value() { return icon },
     show(active: boolean) {
       if (panel.hidden === !active) return
       panel.hidden = !active

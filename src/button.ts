@@ -4,7 +4,7 @@ import type { IconGeometry } from "./icon.ts"
 import { DEPLOY_PATH, MASTRA_PATHS } from "./preset.ts"
 import {
   BUTTON_PATH, byteLength, color, decimal, decodeIcon, defaults, encodeIcon, escapeXml,
-  InputError, MAX_TEXT_LENGTH, MAX_URL_BYTES, SVG_NS,
+  InputError, isSimpleIconSlug, MAX_TEXT_LENGTH, MAX_URL_BYTES, SVG_NS,
 } from "./values.ts"
 
 const keys = [
@@ -13,7 +13,10 @@ const keys = [
 ] as const
 const known = new Set<string>(keys)
 
-type Icon = { kind: "mastra" | "none" } | { kind: "path" | "svg"; geometry: IconGeometry }
+type Icon =
+  | { kind: "mastra" | "none" }
+  | { kind: "path" | "svg"; geometry: IconGeometry }
+  | { kind: "simple"; slug: string }
 
 type Button = {
   text: string
@@ -46,11 +49,11 @@ export function parseButton(params: URLSearchParams): Button {
     throw new InputError("rev: use up to 64 ASCII letters, digits, periods, hyphens, or underscores.")
   }
 
-  const preset = params.get("icon")
+  const name = params.get("icon")
   const path = params.get("iconPath")
   const box = params.get("iconViewBox")
   const source = params.get("iconSvg")
-  if ([preset, path, source].filter((value) => value !== null).length > 1) {
+  if ([name, path, source].filter((value) => value !== null).length > 1) {
     throw new InputError("Choose one icon source: icon, iconPath, or iconSvg.")
   }
   if ((path === null) !== (box === null)) {
@@ -62,10 +65,13 @@ export function parseButton(params: URLSearchParams): Button {
     icon = { kind: "path", geometry: pathIcon(pathData(path).value, viewBox(box)) }
   } else if (source !== null) {
     icon = { kind: "svg", geometry: parseSvg(decodeIcon(source)) }
-  } else if (preset === "none") {
+  } else if (name === "none") {
     icon = { kind: "none" }
-  } else if (preset !== null && preset !== "mastra") {
-    throw new InputError('icon: use "mastra" or "none".')
+  } else if (name !== null && name !== "mastra") {
+    if (!isSimpleIconSlug(name)) {
+      throw new InputError('icon: use "mastra", "none", or a lowercase Simple Icons slug.')
+    }
+    icon = { kind: "simple", slug: name }
   }
 
   function readColor(key: "bg" | "fg" | "border" | "divider" | "iconColor") {
@@ -105,7 +111,7 @@ function svgNumber(value: number): number {
   return Number(value.toFixed(8))
 }
 
-export function renderButton(button: Button): string {
+export function renderButton(button: Button, simpleIcon?: IconGeometry): string {
   const { icon, text, scale } = button
   const hasIcon = icon.kind !== "none"
   const outlined = text === defaults.text
@@ -129,6 +135,9 @@ export function renderButton(button: Button): string {
   }
   if (icon.kind === "mastra") {
     for (const d of MASTRA_PATHS) lines.push(`<path d="${d}" fill="${ink}"/>`)
+  } else if (icon.kind === "simple") {
+    if (!simpleIcon) throw new Error("Missing Simple Icons geometry.")
+    lines.push(renderIcon(simpleIcon, ink))
   } else if ("geometry" in icon) {
     lines.push(renderIcon(icon.geometry, ink))
   }
@@ -145,7 +154,10 @@ export function renderButton(button: Button): string {
 export function buttonUrl(origin: string, button: Button): URL | null {
   const url = new URL(BUTTON_PATH, origin)
   for (const key of keys) {
-    if (key === "icon" && button.icon.kind === "none") url.searchParams.set(key, "none")
+    if (key === "icon") {
+      if (button.icon.kind === "none") url.searchParams.set(key, "none")
+      if (button.icon.kind === "simple") url.searchParams.set(key, button.icon.slug)
+    }
     if ("geometry" in button.icon) {
       if (key === "iconPath" && button.icon.kind === "path") {
         url.searchParams.set(key, button.icon.geometry.root.children[0].attributes.d)

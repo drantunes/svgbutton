@@ -63,6 +63,7 @@ function render() {
   publishedUrl = ""
 
   try {
+    const selectedIcon = source === "simple-icons" ? simpleIcons.value : undefined
     const params = new URLSearchParams()
     for (const name of fields) params.set(name, field(name))
     if (source === "path") {
@@ -72,14 +73,14 @@ function render() {
       if (!importedIcon) throw new InputError("Import an SVG from a URL, a file, or pasted markup.")
       params.set("iconSvg", importedIcon)
     } else if (source === "simple-icons") {
-      if (!simpleIcons.value) throw new InputError("Choose a brand from Simple Icons.")
-      params.set("iconSvg", simpleIcons.value)
+      if (!selectedIcon) throw new InputError("Choose a brand from Simple Icons.")
+      params.set("icon", selectedIcon.slug)
     } else {
       params.set("icon", source)
     }
 
     const button = parseButton(params)
-    const svg = renderButton(button)
+    const svg = renderButton(button, selectedIcon?.geometry)
     const url = buttonUrl(location.origin, button)
     if (previewUrl) URL.revokeObjectURL(previewUrl)
     previewUrl = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }))

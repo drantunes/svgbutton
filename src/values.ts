@@ -20,6 +20,14 @@ export const defaults = {
 
 export class InputError extends Error {}
 
+export function isSimpleIconSlug(slug: string): boolean {
+  return slug !== "mastra" && slug !== "none" && /^[a-z0-9][a-z0-9_-]{0,63}$/.test(slug)
+}
+
+export function simpleIconAssetPath(slug: string): string {
+  return `/simple-icons/${encodeURIComponent(slug)}.svg`
+}
+
 const colors = new Map(Object.entries({
   black: "#000000", white: "#ffffff", red: "#ff0000", green: "#008000",
   blue: "#0000ff", yellow: "#ffff00", gray: "#808080", grey: "#808080",

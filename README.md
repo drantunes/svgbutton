@@ -17,7 +17,7 @@ Open [localhost:8787](http://localhost:8787/) to edit a button. Set the destinat
 [![Deploy](https://mastra-button.YOUR_SUBDOMAIN.workers.dev/v1/button.svg)](https://example.com/deploy)
 ```
 
-Pick **Simple Icons** to search for a brand logo. The editor loads the icon from this site and embeds it in the SVG URL. The catalog includes icons that fit the renderer's SVG limits. Check [Simple Icons' brand usage notes](https://github.com/simple-icons/simple-icons/blob/develop/DISCLAIMER.md) before using a logo.
+Pick **Simple Icons** to search for a brand logo. The editor puts the slug in the SVG URL, such as `?icon=github`. The Worker loads the icon from its bundled catalog. Custom imports still use `iconSvg`. Check [Simple Icons' brand usage notes](https://github.com/simple-icons/simple-icons/blob/develop/DISCLAIMER.md) before using a logo.
 
 The editor follows your system theme until you switch **Dark mode**. Your choice stays in this browser.
 
@@ -35,7 +35,7 @@ The editor follows your system theme until you switch **Dark mode**. Your choice
 | `radius` | `6` | Outer corner radius in pixels, 0–17. |
 | `divider` | `#3a3a3a` | Divider color at 60% opacity. |
 | `iconColor` | `#f2f2f2` | Color of the Mastra icon, a custom path, or a monochrome SVG. |
-| `icon` | `mastra` | `mastra` or `none`. The latter removes the icon and divider. |
+| `icon` | `mastra` | `mastra`, `none`, or a lowercase catalog slug such as `github`. `none` removes the icon and divider. |
 | `iconPath` | | SVG path data (`d`). Use with `iconViewBox`. |
 | `iconViewBox` | | Four numbers separated by spaces or commas. Use with `iconPath`. |
 | `iconSvg` | | UTF-8 SVG encoded as Base64URL without padding. |
@@ -44,9 +44,12 @@ The editor follows your system theme until you switch **Dark mode**. Your choice
 
 Choose at most one of `icon`, `iconPath`, and `iconSvg`. Colors accept 3-, 4-, 6-, and 8-digit hex with an optional `#`. See [the color list](src/values.ts) for supported names. URL-encode query values, including `#` as `%23`.
 
+The deployed catalog is available at `/simple-icons/catalog.json`. A slug follows the catalog in the current deployment. To pin the artwork in a README, download and commit the rendered SVG.
+
 ```sh
 curl -G http://localhost:8787/v1/button.svg \
   --data-urlencode 'text=Deploy & review' \
+  --data-urlencode 'icon=github' \
   --data-urlencode 'iconColor=#78cfff' \
   --data-urlencode 'scale=2'
 ```

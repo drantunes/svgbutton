@@ -59,6 +59,7 @@ test("the Worker revalidates API inputs and sends no-store on errors", async () 
     { iconSvg: "***" },
     { iconPath: 'M0 0" onload="x', iconViewBox: "0 0 1 1" },
     { icon: "none", iconSvg: encodeIcon(monoIcon) },
+    { icon: "github", iconSvg: encodeIcon(monoIcon) },
     { scale: "0.25" },
     { fg: "url(https://example.org/icon.svg)" },
     { unexpected: "true" },
@@ -125,7 +126,7 @@ test("the local Worker serves the editor and its assets and handles routing", as
   }
 })
 
-test("a Simple Icons asset produces a standalone, cacheable button URL", async () => {
+test("a Simple Icons slug produces the same cacheable button as an embedded SVG", async () => {
   const catalog = await server.fetch("/simple-icons/catalog.json")
   assert.equal(catalog.status, 200)
   const brands = await catalog.json() as [slug: string, title: string][]
@@ -134,12 +135,26 @@ test("a Simple Icons asset produces a standalone, cacheable button URL", async (
   const icon = await server.fetch("/simple-icons/github.svg")
   assert.equal(icon.status, 200)
   const svg = await icon.text()
-  const button = parseButton(new URLSearchParams({ iconSvg: encodeIcon(svg) }))
-  const url = buttonUrl("https://button.example", button)!
-  assert.ok(url.searchParams.has("iconSvg"))
-
-  const response = await server.fetch(url.href)
+  const options = { text: "GitHub", iconColor: "#78cfff" }
+  const shortPath = path({ ...options, icon: "github" })
+  const embedded = await server.fetch(path({ ...options, iconSvg: encodeIcon(svg) }))
+  const response = await server.fetch(shortPath)
+  assert.equal(embedded.status, 200)
   assert.equal(response.status, 200)
   assert.equal(response.headers.get("cache-control"), "public, max-age=86400")
-  assert.equal(await response.text(), renderButton(button))
+  const rendered = await response.text()
+  assert.match(rendered, /fill="#78cfff"/)
+  assert.equal(rendered, await embedded.text())
+
+  const head = await server.fetch(shortPath, { method: "HEAD" })
+  assert.equal(head.status, 200)
+  assert.equal(head.headers.get("cache-control"), "public, max-age=86400")
+  assert.equal(head.body, null)
+
+  for (const slug of ["does-not-exist-9999", "../catalog", "https://example.com/icon.svg"]) {
+    const invalid = await server.fetch(path({ icon: slug }))
+    assert.equal(invalid.status, 400)
+    assert.equal(invalid.headers.get("cache-control"), "no-store")
+    assert.match(await invalid.text(), /Simple Icons slug/)
+  }
 })
