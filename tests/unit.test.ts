@@ -87,6 +87,27 @@ test("UTF-8 imports are normalized and recolored while preserving none", () => {
   assert.match(multiSvg, /<circle fill="#ff0000" r="1"\/><circle fill="#0000ff" r="1"\/>/)
 })
 
+test("multicolor SVGs preserve currentColor with and without an explicit color", () => {
+  const shapes = '<circle r="1" fill="currentColor"/><circle r="1" fill="red"/>'
+  const implicit = encodeIcon(`<svg viewBox="0 0 4 4">${shapes}</svg>`)
+  const explicit = encodeIcon(`<svg viewBox="0 0 4 4" color="blue">${shapes}</svg>`)
+  for (const iconSvg of [implicit, explicit]) {
+    assert.equal(render({ iconSvg, iconColor: "green" }), render({ iconSvg, iconColor: "white" }))
+  }
+  assert.match(render({ iconSvg: implicit }), /color="#000000"><g><circle fill="currentColor"/)
+  assert.match(render({ iconSvg: explicit }), /<g color="#0000ff"><circle fill="currentColor"/)
+})
+
+test("SVG root dimensions matter only when the viewBox is absent", () => {
+  const shape = '<circle r="1"/>'
+  const withBox = parseSvg(`<svg width="1em" viewBox="0 0 24 12" height="100%">${shape}</svg>`)
+  assert.deepEqual(withBox, parseSvg(`<svg viewBox="0 0 24 12">${shape}</svg>`))
+  assert.deepEqual(withBox, parseSvg(`<svg width="24px" height="12">${shape}</svg>`))
+  assert.throws(() => parseSvg(`<svg width="1em" height="12">${shape}</svg>`), /width/)
+  assert.throws(() => parseSvg(`<svg width="24" height="100%">${shape}</svg>`), /height/)
+  assert.throws(() => parseSvg(`<svg width="24" height="12" viewBox="0 0 0 12">${shape}</svg>`), /viewBox/)
+})
+
 test("validation rejects invalid Base64URL, invalid XML, and unsupported content", () => {
   for (const icon of invalidIcons) assert.throws(() => render({ iconSvg: encodeIcon(icon) }), InputError)
   for (const encoded of ["***", "abcd=", "_w", "Y", "YR"]) assert.throws(() => decodeIcon(encoded), /Base64URL/)

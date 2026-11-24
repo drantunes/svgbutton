@@ -3,8 +3,8 @@ import { normalizedSvg, parseSvg, pathIcon, renderIcon } from "./icon.ts"
 import type { IconGeometry } from "./icon.ts"
 import { DEPLOY_PATH, MASTRA_PATHS } from "./preset.ts"
 import {
-  BUTTON_PATH, byteLength, color, decimal, decodeIcon, defaults, encodeIcon, escapeXml,
-  ICON_CENTER, ICON_SIZE_RANGE, InputError, isSimpleIconSlug, MAX_TEXT_LENGTH, MAX_URL_BYTES, SVG_NS,
+  BUTTON_PATH, byteLength, color, decimal, decimalRanges, decodeIcon, defaults, encodeIcon, escapeXml,
+  ICON_CENTER, InputError, isSimpleIconSlug, MAX_TEXT_LENGTH, MAX_URL_BYTES, SVG_NS,
 } from "./values.ts"
 
 const keys = [
@@ -79,6 +79,11 @@ export function parseButton(params: URLSearchParams): Button {
     return color(params.get(key) ?? defaults[key], key)
   }
 
+  function readDecimal(key: keyof typeof decimalRanges) {
+    const { min, max } = decimalRanges[key]
+    return decimal(params.get(key) ?? String(defaults[key]), key, min, max)
+  }
+
   return {
     text, rev, icon,
     bg: readColor("bg"),
@@ -86,10 +91,10 @@ export function parseButton(params: URLSearchParams): Button {
     border: readColor("border"),
     divider: readColor("divider"),
     iconColor: readColor("iconColor"),
-    iconSize: decimal(params.get("iconSize") ?? String(defaults.iconSize), "iconSize", ICON_SIZE_RANGE.min, ICON_SIZE_RANGE.max),
-    borderWidth: decimal(params.get("borderWidth") ?? String(defaults.borderWidth), "borderWidth", 0, 8),
-    radius: decimal(params.get("radius") ?? String(defaults.radius), "radius", 0, 17),
-    scale: decimal(params.get("scale") ?? String(defaults.scale), "scale", 0.5, 3),
+    iconSize: readDecimal("iconSize"),
+    borderWidth: readDecimal("borderWidth"),
+    radius: readDecimal("radius"),
+    scale: readDecimal("scale"),
   }
 }
 
@@ -161,6 +166,13 @@ export function renderButton(button: Button, simpleIcon?: IconGeometry): string 
   return lines.join("\n")
 }
 
+function formatDecimal(value: number): string {
+  // Button options range from 0 to 24, so only negative exponents need expansion.
+  const [mantissa, exponent] = String(value).split("e-")
+  if (!exponent) return mantissa
+  return "0." + "0".repeat(Number(exponent) - 1) + mantissa.replace(".", "")
+}
+
 export function buttonUrl(origin: string, button: Button): URL | null {
   const url = new URL(BUTTON_PATH, origin)
   for (const key of keys) {
@@ -183,7 +195,10 @@ export function buttonUrl(origin: string, button: Button): URL | null {
     }
     if (key in defaults) {
       const field = key as keyof typeof defaults
-      if (button[field] !== defaults[field]) url.searchParams.set(key, String(button[field]))
+      const value = button[field]
+      if (value !== defaults[field]) {
+        url.searchParams.set(key, typeof value === "number" ? formatDecimal(value) : value)
+      }
     }
   }
   return byteLength(url.href) <= MAX_URL_BYTES ? url : null

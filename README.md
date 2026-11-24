@@ -1,23 +1,33 @@
 # SVG Button
 
-Make SVG buttons for GitHub READMEs. The default is the original 110 × 34 Mastra Deploy button. Hono serves the API and the JSX editor on Cloudflare Workers Free. Both use the same TypeScript SVG renderer.
+Make SVG buttons for GitHub READMEs. Start with the original 110 × 34 Mastra Deploy button and customize the label, colors, and icon. Hono serves the editor and API on Cloudflare Workers Free.
+
+## Use in a GitHub README
+
+Open your deployed editor at `https://svgbutton.YOUR_SUBDOMAIN.workers.dev/`. If you need to set it up first, see [Deploy](#deploy). Customize the button, add a destination URL if you want it to be clickable, then click **Copy Markdown** and paste it into your README.
+
+```markdown
+[![Deploy](https://svgbutton.YOUR_SUBDOMAIN.workers.dev/v1/button.svg)](https://example.com/deploy)
+```
+
+To keep the image in your repository, click **Download SVG**, commit it as `docs/button.svg`, and use a relative image path.
+
+```markdown
+[![Deploy](docs/button.svg)](https://example.com/deploy)
+```
+
+Choose **Simple Icons** to search the bundled catalog. It includes icons that fit this project's SVG limits. The editor adds the slug to the image URL, such as `?icon=github`. Check [Simple Icons' brand usage notes](https://github.com/simple-icons/simple-icons/blob/develop/DISCLAIMER.md) before using a logo.
 
 ## Run locally
 
-Use Node.js 22.18 or newer.
+Use Node.js 24.14 or newer.
 
 ```sh
 npm ci
 npm run dev
 ```
 
-Open [localhost:8787](http://localhost:8787/) to edit a button. Set the destination and click **Copy Markdown**. The destination is the outer link.
-
-```markdown
-[![Deploy](https://svgbutton.YOUR_SUBDOMAIN.workers.dev/v1/button.svg)](https://example.com/deploy)
-```
-
-Pick **Simple Icons** to search for a brand logo. The editor puts the slug in the SVG URL, such as `?icon=github`. The Worker loads the icon from its bundled catalog. Custom imports still use `iconSvg`. Check [Simple Icons' brand usage notes](https://github.com/simple-icons/simple-icons/blob/develop/DISCLAIMER.md) before using a logo.
+Open [localhost:8787](http://localhost:8787/) to preview and edit a button. For a GitHub README, use the URL from a public deployment or commit the downloaded SVG. GitHub cannot load images from your local server.
 
 The editor follows your system theme until you click the sun or moon. Your choice stays in this browser.
 
@@ -57,17 +67,14 @@ curl -G http://localhost:8787/v1/button.svg \
 
 ## Import an SVG
 
-In the editor, choose **Import SVG**. Paste a direct HTTPS URL that allows CORS, upload a file, or paste the markup. The browser puts the normalized icon in the query string. The Worker validates it again and renders it without fetching the source.
+In the editor, choose **Import SVG**. Upload a file, paste the markup, or enter a direct HTTPS URL that allows CORS. The editor embeds the icon in the button URL. The Worker validates the embedded SVG and renders it without fetching the original source.
 
-Use an `svg` root with a `viewBox` or pixel dimensions. Supported elements are `g`, `path`, `rect`, `circle`, `ellipse`, `line`, `polygon`, and `polyline`. The editor strips `title` and `desc`. Standard geometry attributes, solid fills and strokes, opacities, and transforms are supported. See [the SVG validator](src/icon.ts) for the full list. Scripts, event handlers, styles, references, embedded HTML, DOCTYPE declarations, and animations are rejected.
+Use an `svg` root with a `viewBox`. If the SVG has no `viewBox`, provide its width and height in pixels. Supported elements are `g`, `path`, `rect`, `circle`, `ellipse`, `line`, `polygon`, and `polyline`. The editor strips `title` and `desc` and rejects scripts, styles, external references, and animations. See [the SVG validator](src/icon.ts) for the full list of supported attributes.
 
-Import limits are 16 KiB of UTF-8 XML, 128 elements, 16 levels of nesting, and 512 path commands and points combined. A standalone path can use up to 8,192 characters. If the button URL is too long, click **Download SVG** and link to the file from your README.
+- The input SVG can contain up to **16 KiB of UTF-8 XML**, 128 elements, 16 levels of nesting, and 512 path commands and points combined. A standalone path can use up to 8,192 characters.
+- The **complete button URL** can use up to **8,192 bytes**, including the encoded icon. If the preview works but the URL is too long to copy, click **Download SVG** and commit it with your README.
 
-```markdown
-[![Deploy](docs/button.svg)](https://example.com/deploy)
-```
-
-## Test and deploy
+## Test
 
 ```sh
 npm run check
@@ -77,6 +84,10 @@ npm run deploy:check
 
 `npm test` runs the unit tests and the HTTP tests against Wrangler's local runtime. `npm run deploy:check` builds the Worker without publishing it.
 
+## Deploy
+
+To publish from your machine, run `npx wrangler login` once, then `npm run deploy`. Wrangler prints the public editor URL.
+
 GitHub Actions tests every push and deploys `main` after the tests pass. Add these in [Settings → Secrets and variables → Actions](https://github.com/drantunes/svgbutton/settings/secrets/actions).
 
 | Name | Store as | Where to get it |
@@ -84,7 +95,7 @@ GitHub Actions tests every push and deploys `main` after the tests pass. Add the
 | `CLOUDFLARE_API_TOKEN` | Repository secret | [Cloudflare API Tokens](https://dash.cloudflare.com/profile/api-tokens). Use the **Edit Cloudflare Workers** template and select your account. |
 | `CLOUDFLARE_ACCOUNT_ID` | [Repository variable](https://github.com/drantunes/svgbutton/settings/variables/actions) | Copy the ID from [Workers & Pages](https://developers.cloudflare.com/fundamentals/account/find-account-and-zone-ids/#find-account-id-in-workers--pages). |
 
-Until both values are set, the deploy job reports a skip. After setup, run the workflow from the [Actions tab](https://github.com/drantunes/svgbutton/actions) or push to `main`. If your token is restricted to an existing Worker, create `svgbutton` first with `npx wrangler login` and `npm run deploy`. [Cloudflare Workers permissions](https://developers.cloudflare.com/workers/authorization/)
+Until both values are set, the deploy job reports a skip. After setup, run the workflow from the [Actions tab](https://github.com/drantunes/svgbutton/actions) or push to `main`. If your token can edit only an existing Worker, publish `svgbutton` from your machine first. [Cloudflare Workers permissions](https://developers.cloudflare.com/workers/authorization/)
 
 ## Cache
 

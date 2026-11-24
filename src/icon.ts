@@ -77,8 +77,6 @@ export function parseSvg(source: string): IconGeometry {
 
     const attributes: Record<string, string> = Object.create(null)
     let explicitBox: ViewBox | undefined
-    let width = 0
-    let height = 0
     for (const { name: key, value } of Object.values(tag.attributes)) {
       if (!parent) {
         if (key === "xmlns" && value === SVG_NS) continue
@@ -87,12 +85,7 @@ export function parseSvg(source: string): IconGeometry {
           explicitBox = viewBox(value)
           continue
         }
-        if (key === "width" || key === "height") {
-          const pixels = svgNumber(value.trim().replace(/px$/, ""), key, 0.001)
-          if (key === "width") width = pixels
-          else height = pixels
-          continue
-        }
+        if (key === "width" || key === "height") continue
       }
       if (metadata.has(name)) throw new InputError(`SVG: unsupported attribute "${key}" on <${name}>.`)
 
@@ -141,9 +134,17 @@ export function parseSvg(source: string): IconGeometry {
     const node: Shape = { name, attributes, children: [] }
     if (!parent) {
       root = node
-      if (explicitBox) box = explicitBox
-      else if (width && height) box = [0, 0, width, height]
-      else throw new InputError("SVG: provide a viewBox or width and height in pixels.")
+      if (explicitBox) {
+        box = explicitBox
+      } else {
+        const { width, height } = tag.attributes
+        if (!width || !height) throw new InputError("SVG: provide a viewBox or width and height in pixels.")
+        box = [
+          0, 0,
+          svgNumber(width.value.trim().replace(/px$/, ""), "width", 0.001),
+          svgNumber(height.value.trim().replace(/px$/, ""), "height", 0.001),
+        ]
+      }
     } else if (!metadata.has(name)) {
       parent.children.push(node)
     }
@@ -220,8 +221,9 @@ function recolor(node: Shape, ink: string, inheritedColor: string): Shape {
 export function renderIcon(icon: IconGeometry, ink: string): string {
   const monochrome = isMonochrome(icon.root)
   const root = monochrome ? recolor(icon.root, ink, "#000000") : icon.root
+  const paint = monochrome ? ink : "#000000"
   // Clip and center the imported viewBox within the 20 × 20 icon area.
   const group = serializeNode({ ...root, name: "g" })
   const size = defaults.iconSize
-  return `<svg x="${ICON_CENTER.x - size / 2}" y="${ICON_CENTER.y - size / 2}" width="${size}" height="${size}" viewBox="${icon.viewBox.join(" ")}" preserveAspectRatio="xMidYMid meet" overflow="hidden" fill="${monochrome ? ink : "#000000"}" color="${ink}">${group}</svg>`
+  return `<svg x="${ICON_CENTER.x - size / 2}" y="${ICON_CENTER.y - size / 2}" width="${size}" height="${size}" viewBox="${icon.viewBox.join(" ")}" preserveAspectRatio="xMidYMid meet" overflow="hidden" fill="${paint}" color="${paint}">${group}</svg>`
 }

@@ -1,4 +1,4 @@
-import { BUTTON_PATH, defaults, ICON_SIZE_RANGE } from "./values.ts"
+import { BUTTON_PATH, decimalRanges, defaults } from "./values.ts"
 
 function EditorPage() {
   return (
@@ -42,7 +42,7 @@ function EditorPage() {
                   </label>
                   <small class="full hint" id="destination-hint">Optional. The link opens when someone clicks the button in your README.</small>
                   <label>Scale
-                    <input name="scale" type="number" min="0.5" max="3" step="any" value={defaults.scale} required />
+                    <input name="scale" type="number" {...decimalRanges.scale} step="any" value={defaults.scale} required />
                   </label>
                   <label>Revision
                     <input name="rev" maxlength={64} placeholder="e.g. v2" />
@@ -58,10 +58,10 @@ function EditorPage() {
                   <label>Border color <input name="border" value={defaults.border} spellcheck={false} /></label>
                   <label>Divider color <input name="divider" value={defaults.divider} spellcheck={false} /></label>
                   <label>Border width
-                    <input name="borderWidth" type="number" min="0" max="8" step="any" value={defaults.borderWidth} />
+                    <input name="borderWidth" type="number" {...decimalRanges.borderWidth} step="any" value={defaults.borderWidth} />
                   </label>
                   <label>Corner radius
-                    <input name="radius" type="number" min="0" max="17" step="any" value={defaults.radius} />
+                    <input name="radius" type="number" {...decimalRanges.radius} step="any" value={defaults.radius} />
                   </label>
                 </div>
               </fieldset>
@@ -80,7 +80,7 @@ function EditorPage() {
                   </label>
                   <label>Icon color <input name="iconColor" value={defaults.iconColor} spellcheck={false} /></label>
                   <label>Icon size (px)
-                    <input name="iconSize" type="number" min={ICON_SIZE_RANGE.min} max={ICON_SIZE_RANGE.max} step="any" value={defaults.iconSize} />
+                    <input name="iconSize" type="number" {...decimalRanges.iconSize} step="any" value={defaults.iconSize} />
                   </label>
                 </div>
                 <section id="simple-icons-fields" class="extra fields" hidden>

@@ -5,7 +5,12 @@ export const MAX_PATH_LENGTH = 8192
 export const MAX_TEXT_LENGTH = 120
 export const BUTTON_PATH = "/v1/button.svg"
 export const ICON_CENTER = { x: 20.67745, y: 17 }
-export const ICON_SIZE_RANGE = { min: 8, max: 24 }
+export const decimalRanges = {
+  borderWidth: { min: 0, max: 8 },
+  radius: { min: 0, max: 17 },
+  iconSize: { min: 8, max: 24 },
+  scale: { min: 0.5, max: 3 },
+} as const
 
 export const defaults = {
   text: "Deploy",

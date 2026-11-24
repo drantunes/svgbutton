@@ -53,6 +53,17 @@ test("GET renders scale, a Unicode label, and a Base64URL icon with the requeste
   assert.match(svg, /<g fill="none" stroke="#0000ff"/)
 })
 
+test("the generated button URL round-trips tiny decimal values through the API", async () => {
+  const options = { borderWidth: "0.0000001", radius: "0.00000025" }
+  const button = parseButton(new URLSearchParams(options))
+  const url = buttonUrl("https://button.example", button)!
+  assert.deepEqual(Object.fromEntries(url.searchParams), options)
+
+  const response = await server.fetch(url.href)
+  assert.equal(response.status, 200)
+  assert.equal(await response.text(), renderButton(button))
+})
+
 test("the Worker revalidates API inputs and sends no-store on errors", async () => {
   const options: Record<string, string>[] = [
     ...invalidIcons.map((svg) => ({ iconSvg: encodeIcon(svg) })),
