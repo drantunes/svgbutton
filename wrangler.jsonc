@@ -1,0 +1,15 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "mastra-button",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-11-24",
+  "workers_dev": true,
+  "cache": { "enabled": true },
+  "build": {
+    "command": "npm run build:editor",
+    "watch_dir": "src"
+  },
+  "rules": [
+    { "type": "Text", "globs": ["**/*.html", "**/*.css", "**/*.txt"], "fallthrough": false }
+  ]
+}
