@@ -88,24 +88,6 @@ npm run deploy:check
 
 To publish from your machine, run `npx wrangler login` once, then `npm run deploy`. Wrangler prints the public editor URL.
 
-GitHub Actions tests every push and deploys `main` after the tests pass. Add these in [Settings → Secrets and variables → Actions](https://github.com/drantunes/svgbutton/settings/secrets/actions).
-
-| Name | Store as | Where to get it |
-| --- | --- | --- |
-| `CLOUDFLARE_API_TOKEN` | Repository secret | [Cloudflare API Tokens](https://dash.cloudflare.com/profile/api-tokens). Use the **Edit Cloudflare Workers** template and select your account. |
-| `CLOUDFLARE_ACCOUNT_ID` | [Repository variable](https://github.com/drantunes/svgbutton/settings/variables/actions) | Copy the ID from [Workers & Pages](https://developers.cloudflare.com/fundamentals/account/find-account-and-zone-ids/#find-account-id-in-workers--pages). |
-
-Until both values are set, the deploy job reports a skip. After setup, run the workflow from the [Actions tab](https://github.com/drantunes/svgbutton/actions) or push to `main`. If your token can edit only an existing Worker, publish `svgbutton` from your machine first. [Cloudflare Workers permissions](https://developers.cloudflare.com/workers/authorization/)
-
 ## Cache
 
 Wrangler enables [native Workers Cache](https://developers.cloudflare.com/workers/cache/configuration/). Successful SVG responses use `Cache-Control: public, max-age=86400`. The editor and errors use `no-store`. The editor uses a stable parameter order and drops defaults such as `scale=1.0`. Change `rev` when you want a fresh URL in a README.
-
-After deploying, send the same GET twice with a fresh `rev`. Look for `Cf-Cache-Status: MISS` on the first response and `HIT` on the second.
-
-```sh
-url='https://svgbutton.YOUR_SUBDOMAIN.workers.dev/v1/button.svg?rev=cache-test-1'
-for attempt in 1 2; do
-  curl -sS -D - -o /dev/null "$url" | grep -i '^cf-cache-status:'
-done
-```
