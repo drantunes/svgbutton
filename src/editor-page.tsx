@@ -2,13 +2,34 @@ import { BUTTON_PATH, decimalRanges, defaults, editorDefaults } from "./values.t
 
 const previewParams = new URLSearchParams({ text: editorDefaults.text, icon: editorDefaults.icon })
 
+type ColorFieldProps = {
+  name: "bg" | "iconBg" | "fg" | "border" | "divider" | "iconColor"
+  label: string
+  labelId?: string
+  fieldId?: string
+  hidden?: boolean
+}
+
+function ColorField({ name, label, labelId = `${name}-color-label`, fieldId, hidden }: ColorFieldProps) {
+  const inputId = `color-${name}`
+  return (
+    <div class="color-field" id={fieldId} hidden={hidden}>
+      <label id={labelId} for={inputId}>{label}</label>
+      <div class="color-control">
+        <input id={inputId} name={name} value={defaults[name]} spellcheck={false} />
+        <input type="color" value={defaults[name]} data-color-for={name} aria-labelledby={`color-picker-label ${labelId}`} />
+      </div>
+    </div>
+  )
+}
+
 function EditorPage() {
   return (
     <html lang="en">
       <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="theme-color" content="#f5f3ee" />
+        <meta name="theme-color" content="#eff0f4" />
         <title>SVG Button · GitHub README buttons</title>
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         <link rel="stylesheet" href="/editor.css" />
@@ -35,10 +56,11 @@ function EditorPage() {
             </div>
           </header>
 
+          <span id="color-picker-label" hidden>Choose</span>
           <form id="editor" class="workspace">
             <div class="controls">
-              <fieldset>
-                <legend>Button</legend>
+              <section class="control-card" aria-labelledby="button-title">
+                <h2 id="button-title">Button</h2>
                 <div class="fields">
                   <label class="full">Label
                     <input name="text" value={editorDefaults.text} required />
@@ -54,10 +76,10 @@ function EditorPage() {
                     <input name="rev" maxlength={64} placeholder="e.g. v2" />
                   </label>
                 </div>
-              </fieldset>
+              </section>
 
-              <fieldset>
-                <legend>Appearance</legend>
+              <section class="control-card" aria-labelledby="appearance-title">
+                <h2 id="appearance-title">Appearance</h2>
                 <div class="fields">
                   <label class="full">Layout
                     <select name="layout">
@@ -65,11 +87,11 @@ function EditorPage() {
                       <option value="split">Split</option>
                     </select>
                   </label>
-                  <label><span id="background-label">Background</span><input name="bg" value={defaults.bg} spellcheck={false} /></label>
-                  <label id="icon-background-field" hidden><span id="icon-background-label">Icon background</span><input name="iconBg" value={defaults.iconBg} spellcheck={false} /></label>
-                  <label>Text color <input name="fg" value={defaults.fg} spellcheck={false} /></label>
-                  <label>Border color <input name="border" value={defaults.border} spellcheck={false} /></label>
-                  <label id="divider-field">Divider color <input name="divider" value={defaults.divider} spellcheck={false} /></label>
+                  <ColorField name="bg" label="Background" labelId="background-label" />
+                  <ColorField name="iconBg" label="Icon background" labelId="icon-background-label" fieldId="icon-background-field" hidden />
+                  <ColorField name="fg" label="Text color" />
+                  <ColorField name="border" label="Border color" />
+                  <ColorField name="divider" label="Divider color" fieldId="divider-field" />
                   <label>Border width
                     <input name="borderWidth" type="number" {...decimalRanges.borderWidth} step="any" value={defaults.borderWidth} />
                   </label>
@@ -86,10 +108,10 @@ function EditorPage() {
                     <input name="fontSize" type="number" {...decimalRanges.fontSize} step="any" value={defaults.fontSize} />
                   </label>
                 </div>
-              </fieldset>
+              </section>
 
-              <fieldset>
-                <legend>Icon</legend>
+              <section class="control-card" aria-labelledby="icon-title">
+                <h2 id="icon-title">Icon</h2>
                 <div class="fields">
                   <label class="full">Source
                     <select name="source">
@@ -104,7 +126,7 @@ function EditorPage() {
                   <label id="icon-text-field" class="full" hidden>Left label
                     <input name="iconText" value="BUILD" spellcheck={false} />
                   </label>
-                  <label><span id="icon-color-label">Icon color</span><input name="iconColor" value={defaults.iconColor} spellcheck={false} /></label>
+                  <ColorField name="iconColor" label="Icon color" labelId="icon-color-label" />
                   <label id="icon-size-field">Icon size (px)
                     <input name="iconSize" type="number" {...decimalRanges.iconSize} step="any" value={defaults.iconSize} />
                   </label>
@@ -142,7 +164,7 @@ function EditorPage() {
                   <button id="import-source" type="button">Use pasted SVG</button>
                   <small id="import-status" class="full hint" role="status">If the source blocks CORS, upload a file or paste the SVG markup.</small>
                 </section>
-              </fieldset>
+              </section>
             </div>
 
             <section class="result" aria-labelledby="preview-title">

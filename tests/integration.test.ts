@@ -147,7 +147,13 @@ test("the local Worker serves the editor and its assets and handles routing", as
   assert.match(markup, /name="paddingX" type="number" min="0" max="48" step="any" value="0"/)
   assert.match(markup, /name="paddingY" type="number" min="0" max="48" step="any" value="0"/)
   assert.match(markup, /<select name="layout"><option value="standard" selected="">Standard<\/option><option value="split">Split<\/option><\/select>/)
-  assert.match(markup, /id="icon-background-field" hidden=""><span id="icon-background-label">Icon background<\/span><input name="iconBg" value="#3a3a3a"/)
+  assert.match(markup, /id="icon-background-field" hidden=""><label id="icon-background-label" for="color-iconBg">Icon background<\/label>/)
+  assert.match(markup, /id="color-iconBg" name="iconBg" value="#3a3a3a"/)
+  for (const name of ["bg", "iconBg", "fg", "border", "divider", "iconColor"]) {
+    const picker = markup.match(new RegExp(`<input[^>]*data-color-for="${name}"[^>]*>`))?.[0] ?? ""
+    assert.match(picker, /type="color"/)
+    assert.doesNotMatch(picker, /\sname=/)
+  }
   assert.match(markup, /name="iconSize" type="number" min="8" max="24" step="any" value="20"/)
   assert.match(markup, /<option value="simple-icons" selected="">Simple Icons<\/option>/)
   assert.match(markup, /<option value="text">Text<\/option>/)

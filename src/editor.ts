@@ -2,7 +2,7 @@ import { buttonUrl, markdown, parseButton, renderButton } from "./button.ts"
 import { normalizedSvg, parseSvg } from "./icon.ts"
 import { setupSimpleIconsPicker } from "./simple-icons-picker.ts"
 import { setupTheme } from "./theme.ts"
-import { byteLength, editorDefaults, encodeIcon, InputError, MAX_ICON_BYTES } from "./values.ts"
+import { byteLength, color, editorDefaults, encodeIcon, InputError, MAX_ICON_BYTES } from "./values.ts"
 
 const form = document.querySelector<HTMLFormElement>("#editor")!
 const preview = document.querySelector<HTMLImageElement>("#preview")!
@@ -269,6 +269,38 @@ for (const button of formatButtons) {
     setStatus(actionStatus, "")
     updateOutput()
   })
+}
+
+for (const picker of form.querySelectorAll<HTMLInputElement>("input[type=color][data-color-for]")) {
+  const input = form.elements.namedItem(picker.dataset.colorFor!) as HTMLInputElement
+  let typedValue: string
+  let typedColor: string | undefined
+
+  function syncPicker() {
+    typedValue = input.value
+    try {
+      typedColor = color(typedValue, input.name)
+      picker.value = typedColor.slice(0, 7)
+    } catch (error) {
+      if (!(error instanceof InputError)) throw error
+      // Keep the previous swatch while the text is incomplete or invalid.
+      typedColor = undefined
+    }
+  }
+
+  function applyPickedColor() {
+    // The native picker edits RGB. Preserve typed opacity and restore the original text when RGB returns to it.
+    const picked = picker.value
+    const value = picked === typedColor?.slice(0, 7) ? typedValue : picked + (typedColor?.slice(7) ?? "")
+    if (input.value === value) return
+    input.value = value
+    render()
+  }
+
+  syncPicker()
+  input.addEventListener("input", syncPicker)
+  picker.addEventListener("input", applyPickedColor)
+  picker.addEventListener("change", applyPickedColor)
 }
 
 form.addEventListener("submit", (event) => event.preventDefault())
