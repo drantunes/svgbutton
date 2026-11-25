@@ -24,6 +24,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "choices.js": "^11.2.4",
     "esbuild": "^0.28.2",
     "simple-icons": "^16.38.1",
     "typescript": "^5.9.0",

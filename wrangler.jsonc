@@ -11,6 +11,6 @@
     "watch_dir": ["src", "scripts"]
   },
   "rules": [
-    { "type": "Text", "globs": ["**/*.css", "**/*.txt"], "fallthrough": false }
+    { "type": "Text", "globs": ["**/*.css", "**/*.txt", "**/favicon.svg"], "fallthrough": false }
   ]
 }

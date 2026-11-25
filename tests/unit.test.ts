@@ -23,6 +23,33 @@ test("scale changes dimensions and preserves the viewBox", () => {
   for (const scale of ["0", "0.49", "3.01", "Infinity", "1e0"]) assert.throws(() => render({ scale }), /scale/)
 })
 
+test("font size resizes the label and adjusts the viewBox width", () => {
+  const svg = render({ fontSize: "24", text: "Ship", scale: "2" })
+  assert.match(svg, /width="214" height="68" viewBox="0 0 107 34"/)
+  assert.match(svg, /<text x="48" y="25"[^>]*font-size="24"[^>]*textLength="46.4"[^>]*>Ship<\/text>/)
+
+  const outlined = render({ fontSize: "12", icon: "none" })
+  assert.match(outlined, /width="66" height="34"/)
+  assert.ok(outlined.includes(`d="${DEPLOY_PATH}" fill="#F2F2F2" transform="translate(13 21) scale(0.8) translate(-48 -22)"`))
+  assert.equal(render({ fontSize: "15.0" }), render())
+  assert.throws(() => render({ fontSize: "7.9" }), /fontSize/)
+  assert.throws(() => render({ fontSize: "24.1" }), /fontSize/)
+})
+
+test("padding adds space on both sides of each axis before scaling", () => {
+  const svg = render({ paddingX: "6.5", paddingY: "4", scale: "2" })
+  assert.match(svg, /width="246" height="84" viewBox="0 0 123 42"/)
+  assert.match(svg, /<rect x="0.5" y="0.5" width="122" height="41"/)
+  assert.match(svg, /<g transform="translate\(6.5 4\)">\n<line/)
+  assert.ok(svg.includes(`d="${DEPLOY_PATH}" fill="#F2F2F2"/>\n</g>\n</svg>`))
+
+  assert.match(render({ paddingX: "8", icon: "none" }), /width="92" height="34"/)
+  assert.match(render({ paddingY: "8" }), /width="110" height="50"/)
+  assert.equal(render({ paddingX: "0.0", paddingY: "0" }), render())
+  assert.throws(() => render({ paddingX: "-1" }), /paddingX/)
+  assert.throws(() => render({ paddingY: "48.1" }), /paddingY/)
+})
+
 test("long Unicode labels grow the button and escape XML characters", () => {
   const text = 'Café launch & résumé <production> "right now" 🧪'
   const svg = render({ text })
@@ -40,6 +67,32 @@ test("colors, border width, and radius are independent", () => {
   assert.match(svg, /rx="7" fill="#ffffff" stroke="#008080" stroke-width="2"/)
   assert.match(svg, /stroke="#ffa500" stroke-opacity="0.6"/)
   assert.throws(() => render({ fg: "url(https://example.org/p)" }), /fg/)
+})
+
+test("split layout meets at the divider position and fills the rounded button without a line", () => {
+  const colors = { bg: "transparent", iconBg: "#abc8" }
+  const svg = render({ ...colors, layout: "split", paddingX: "6.5", borderWidth: "2", radius: "8" })
+  assert.match(svg, /<stop offset="0.36363636" stop-color="#aabbcc88"\/><stop offset="0.36363636" stop-color="#00000000"\/>/)
+  assert.match(svg, /<rect x="1" y="1" width="121" height="32" rx="7" fill="url\(#split-background\)" stroke="#18181B" stroke-width="2"\/>/)
+  assert.doesNotMatch(svg, /<line\b/)
+  assert.equal(render({ ...colors, layout: "split", icon: "none" }), render({ bg: colors.bg, icon: "none" }))
+  assert.equal(render({ layout: "standard", iconBg: "red" }), render())
+  assert.throws(() => render({ layout: "stacked" }), /layout/)
+  assert.throws(() => render({ layout: "split", iconBg: "invalid" }), /iconBg/)
+})
+
+test("a left label expands its segment and shares the main label size", () => {
+  const svg = render({ iconText: "BUILD", text: "PASSED", iconColor: "blue" })
+  assert.match(svg, /<svg width="139" height="34"/)
+  assert.match(svg, /<line x1="63"[^>]*\/>/)
+  assert.match(svg, /<text x="13" y="22" fill="#0000ff"[^>]*>BUILD<\/text>/)
+  assert.match(svg, /<text x="73" y="22"[^>]*>PASSED<\/text>/)
+  const split = render({ layout: "split", iconText: "<QA & Café>", fontSize: "12" })
+  assert.match(split, /font-size="12"[^>]*>&lt;QA &amp; Café&gt;<\/text>/)
+  assert.match(split, /fill="url\(#split-background\)"/)
+  assert.doesNotMatch(split, /<line\b/)
+  assert.throws(() => render({ iconText: " " }), /iconText/)
+  assert.throws(() => render({ iconText: "BUILD", icon: "github" }), /one icon source/)
 })
 
 test("icon size scales around the icon center without moving the divider or label", () => {
@@ -117,7 +170,7 @@ test("URL generation orders parameters, omits defaults, and separates the destin
   const button = parseButton(new URLSearchParams("rev=2&scale=1.0&fg=%23ABC&icon=mastra&bg=black&text=A%CC%81%26%5Bx%5D"))
   const url = buttonUrl(origin, button)
   assert.equal(url?.href, `${origin}/v1/button.svg?text=%C3%81%26%5Bx%5D&fg=%23aabbcc&rev=2`)
-  assert.equal(buttonUrl(origin, parseButton(new URLSearchParams("scale=1")))?.href, `${origin}/v1/button.svg`)
+  assert.equal(buttonUrl(origin, parseButton(new URLSearchParams("scale=1&layout=standard")))?.href, `${origin}/v1/button.svg`)
   assert.equal(markdown(button.text, url!.href, "https://example.org/deploy(a)"),
     `[![Á\\&\\[x\\]](${url!.href})](https://example.org/deploy%28a%29)`)
   const iconButton = parseButton(new URLSearchParams({ iconSvg: encodeIcon(monoIcon) }))

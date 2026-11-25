@@ -2,27 +2,49 @@ import { buttonUrl, markdown, parseButton, renderButton } from "./button.ts"
 import { normalizedSvg, parseSvg } from "./icon.ts"
 import { setupSimpleIconsPicker } from "./simple-icons-picker.ts"
 import { setupTheme } from "./theme.ts"
-import { byteLength, encodeIcon, InputError, MAX_ICON_BYTES } from "./values.ts"
+import { byteLength, editorDefaults, encodeIcon, InputError, MAX_ICON_BYTES } from "./values.ts"
 
 const form = document.querySelector<HTMLFormElement>("#editor")!
 const preview = document.querySelector<HTMLImageElement>("#preview")!
-const output = document.querySelector<HTMLTextAreaElement>("#markdown")!
+const imagePreview = document.querySelector<HTMLElement>("#image-preview")!
+const formatButtons = document.querySelectorAll<HTMLButtonElement>("#preview-formats button")
+const output = document.querySelector<HTMLTextAreaElement>("#output")!
+const outputHighlight = document.querySelector<HTMLElement>("#output-highlight")!
 const pathFields = document.querySelector<HTMLElement>("#path-fields")!
 const svgFields = document.querySelector<HTMLElement>("#svg-fields")!
+const iconTextField = document.querySelector<HTMLElement>("#icon-text-field")!
+const iconColorLabel = document.querySelector<HTMLElement>("#icon-color-label")!
+const iconSizeField = document.querySelector<HTMLElement>("#icon-size-field")!
+const backgroundLabel = document.querySelector<HTMLElement>("#background-label")!
+const iconBackgroundLabel = document.querySelector<HTMLElement>("#icon-background-label")!
+const iconBackgroundField = document.querySelector<HTMLElement>("#icon-background-field")!
+const dividerField = document.querySelector<HTMLElement>("#divider-field")!
 const dimensions = document.querySelector<HTMLElement>("#dimensions")!
 const renderStatus = document.querySelector<HTMLElement>("#render-status")!
 const actionStatus = document.querySelector<HTMLElement>("#action-status")!
 const importStatus = document.querySelector<HTMLElement>("#import-status")!
-const copyMarkdown = document.querySelector<HTMLButtonElement>("#copy-markdown")!
-const copyUrl = document.querySelector<HTMLButtonElement>("#copy-url")!
+const copyOutput = document.querySelector<HTMLButtonElement>("#copy-output")!
+const copyTooltip = document.querySelector<HTMLElement>("#copy-tooltip")!
 const download = document.querySelector<HTMLButtonElement>("#download")!
 const importFile = form.elements.namedItem("importFile") as HTMLInputElement
 const importSource = form.elements.namedItem("importSource") as HTMLTextAreaElement
 const simpleIcons = setupSimpleIconsPicker(render)
 
-const fields = ["text", "bg", "fg", "border", "borderWidth", "radius", "divider", "iconColor", "iconSize", "scale", "rev"]
+const fields = [
+  "text", "fontSize", "paddingX", "paddingY", "layout", "bg", "fg", "border", "borderWidth", "radius",
+  "iconColor", "scale", "rev",
+]
+const outputLabels = { image: "Image URL", markdown: "Markdown", svg: "SVG" }
+type Format = keyof typeof outputLabels
+const outputPatterns: Record<Format, RegExp> = {
+  image: /(?<link>.+)/g,
+  markdown: /(?<link>(?<=\]\()[^)]+)|(?<escape>\\.)|(?<punctuation>!?\[|\]\(|\]|\))/g,
+  svg: /(?<tag><\/?[\w:-]+|\/?>)|(?<attribute>[\w:-]+(?=="))|(?<value>"[^"]*")|(?<escape>&[\w#]+;)/g,
+}
+let format: Format = "image"
+let outputValues: Record<Format, string>
+let copyTimer: number | undefined
 let previewUrl = ""
-let publishedUrl = ""
 let importedIcon = ""
 let importAttempt = 0
 
@@ -40,6 +62,38 @@ function setStatus(element: HTMLElement, text: string, isError = false) {
   element.hidden = !text
 }
 
+function syncOutputScroll() {
+  outputHighlight.style.translate = `${-output.scrollLeft}px ${-output.scrollTop}px`
+}
+
+function highlightOutput(value: string) {
+  const fragment = document.createDocumentFragment()
+  let end = 0
+  for (const match of value.matchAll(outputPatterns[format])) {
+    const span = document.createElement("span")
+    const kind = Object.keys(match.groups!).find((key) => match.groups![key] !== undefined)
+    span.className = `code-${kind}`
+    span.textContent = match[0]
+    fragment.append(value.slice(end, match.index), span)
+    end = match.index + match[0].length
+  }
+  fragment.append(value.slice(end))
+  outputHighlight.replaceChildren(fragment)
+  syncOutputScroll()
+}
+
+function updateOutput() {
+  output.value = outputValues[format]
+  output.rows = format === "svg" ? 8 : 3
+  highlightOutput(output.value)
+  output.setAttribute("aria-label", outputLabels[format])
+  copyOutput.disabled = !output.value
+  copyOutput.setAttribute("aria-label", `Copy ${format === "image" ? "image URL" : outputLabels[format]}`)
+  imagePreview.hidden = format !== "image"
+  window.clearTimeout(copyTimer)
+  copyTooltip.textContent = ""
+}
+
 function destination(value: string): string {
   if (!value.trim()) return ""
   try {
@@ -53,25 +107,42 @@ function destination(value: string): string {
 
 function render() {
   const source = field("source")
+  const split = field("layout") === "split"
+  const hasIcon = source !== "none"
+  const hasLeftLabel = source === "text"
+  backgroundLabel.textContent = split && hasIcon ? "Text background" : "Background"
+  iconBackgroundLabel.textContent = hasLeftLabel ? "Left label background" : "Icon background"
+  iconBackgroundField.hidden = !split || !hasIcon
+  dividerField.hidden = split || !hasIcon
+  iconTextField.hidden = !hasLeftLabel
+  iconColorLabel.textContent = hasLeftLabel ? "Left label color" : "Icon color"
+  iconSizeField.hidden = hasLeftLabel
   pathFields.hidden = source !== "path"
   svgFields.hidden = source !== "svg"
   simpleIcons.show(source === "simple-icons")
   setStatus(actionStatus, "")
   setStatus(renderStatus, "")
-  output.value = ""
-  download.disabled = copyUrl.disabled = copyMarkdown.disabled = true
-  publishedUrl = ""
+  outputValues = { image: "", markdown: "", svg: "" }
+  download.disabled = true
+  preview.hidden = true
+  dimensions.textContent = ""
 
   try {
+    if (source === "simple-icons" && simpleIcons.pending) return
     const selectedIcon = source === "simple-icons" ? simpleIcons.value : undefined
     const params = new URLSearchParams()
     for (const name of fields) params.set(name, field(name))
+    if (!hasLeftLabel) params.set("iconSize", field("iconSize"))
+    if (!iconBackgroundField.hidden) params.set("iconBg", field("iconBg"))
+    if (!dividerField.hidden) params.set("divider", field("divider"))
     if (source === "path") {
       params.set("iconPath", field("iconPath"))
       params.set("iconViewBox", field("iconViewBox"))
     } else if (source === "svg") {
       if (!importedIcon) throw new InputError("Import an SVG from a URL, a file, or pasted markup.")
       params.set("iconSvg", importedIcon)
+    } else if (hasLeftLabel) {
+      params.set("iconText", field("iconText"))
     } else if (source === "simple-icons") {
       if (!selectedIcon) throw new InputError("Choose a brand from Simple Icons.")
       params.set("icon", selectedIcon.slug)
@@ -82,28 +153,25 @@ function render() {
     const button = parseButton(params)
     const svg = renderButton(button, selectedIcon?.geometry)
     const url = buttonUrl(location.origin, button)
+    const label = button.icon.kind === "text" ? `${button.icon.label} · ${button.text}` : button.text
+    outputValues.svg = svg
     if (previewUrl) URL.revokeObjectURL(previewUrl)
     previewUrl = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }))
     preview.src = previewUrl
-    preview.alt = button.text
+    preview.alt = label
     preview.hidden = false
     download.disabled = false
 
     if (!url) {
-      setStatus(renderStatus, "The URL exceeds 8192 bytes. Download the SVG and add it to your repository.")
+      setStatus(renderStatus, "The URL exceeds 8192 bytes. Use the SVG tab or download the file.")
       return
     }
-    publishedUrl = url.href
-    copyUrl.disabled = false
-
-    output.value = markdown(button.text, publishedUrl, destination(field("destination")))
-    copyMarkdown.disabled = false
+    outputValues.image = url.href
+    outputValues.markdown = markdown(label, url.href, destination(field("destination")))
   } catch (error) {
-    if (download.disabled) {
-      preview.hidden = true
-      dimensions.textContent = ""
-    }
     setStatus(renderStatus, message(error), true)
+  } finally {
+    updateOutput()
   }
 }
 
@@ -176,16 +244,35 @@ async function importByUrl(): Promise<string> {
   return readIcon(response.body)
 }
 
-async function copy(value: string, confirmation: string, fallback: () => void) {
+async function copy() {
+  const value = output.value
+  const copiedFormat = format
+  setStatus(actionStatus, "")
   try {
     await navigator.clipboard.writeText(value)
-    setStatus(actionStatus, confirmation)
+    if (format !== copiedFormat || output.value !== value) return
+    copyTooltip.textContent = "Copied!"
+    window.clearTimeout(copyTimer)
+    copyTimer = window.setTimeout(() => { copyTooltip.textContent = "" }, 1800)
   } catch {
-    fallback()
+    if (format !== copiedFormat || output.value !== value) return
+    output.focus()
+    output.select()
+    setStatus(actionStatus, "Copy the selected text.", true)
   }
 }
 
+for (const button of formatButtons) {
+  button.addEventListener("click", () => {
+    format = button.dataset.format as Format
+    for (const choice of formatButtons) choice.setAttribute("aria-pressed", String(choice === button))
+    setStatus(actionStatus, "")
+    updateOutput()
+  })
+}
+
 form.addEventListener("submit", (event) => event.preventDefault())
+output.addEventListener("scroll", syncOutputScroll)
 form.addEventListener("input", (event) => {
   const target = event.target as HTMLInputElement
   if (target.name && !target.name.startsWith("import")) render()
@@ -200,17 +287,7 @@ importFile.addEventListener("change", () => {
   if (file) void importIcon(() => readIcon(file.stream()))
   importFile.value = ""
 })
-copyMarkdown.addEventListener("click", () => {
-  void copy(output.value, "Markdown copied.", () => {
-    output.focus()
-    output.select()
-    setStatus(actionStatus, "Copy the selected Markdown.", true)
-  })
-})
-copyUrl.addEventListener("click", () => {
-  const value = publishedUrl
-  void copy(value, "SVG URL copied.", () => { window.prompt("Copy the SVG URL", value) })
-})
+copyOutput.addEventListener("click", () => { void copy() })
 download.addEventListener("click", () => {
   const link = document.createElement("a")
   link.href = previewUrl
@@ -219,4 +296,8 @@ download.addEventListener("click", () => {
   setStatus(actionStatus, "SVG download started.")
 })
 setupTheme()
-render()
+if (field("source") === "simple-icons") {
+  void simpleIcons.chooseIcon(editorDefaults.icon, editorDefaults.iconTitle)
+} else {
+  render()
+}

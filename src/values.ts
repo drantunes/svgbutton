@@ -6,6 +6,9 @@ export const MAX_TEXT_LENGTH = 120
 export const BUTTON_PATH = "/v1/button.svg"
 export const ICON_CENTER = { x: 20.67745, y: 17 }
 export const decimalRanges = {
+  fontSize: { min: 8, max: 24 },
+  paddingX: { min: 0, max: 48 },
+  paddingY: { min: 0, max: 48 },
   borderWidth: { min: 0, max: 8 },
   radius: { min: 0, max: 17 },
   iconSize: { min: 8, max: 24 },
@@ -14,7 +17,12 @@ export const decimalRanges = {
 
 export const defaults = {
   text: "Deploy",
+  fontSize: 15,
+  paddingX: 0,
+  paddingY: 0,
+  layout: "standard",
   bg: "#000000",
+  iconBg: "#3a3a3a",
   fg: "#f2f2f2",
   border: "#18181b",
   borderWidth: 1,
@@ -24,6 +32,12 @@ export const defaults = {
   iconSize: 20,
   scale: 1,
   rev: "",
+} as const
+
+export const editorDefaults = {
+  text: "Create your Button",
+  icon: "materialdesignicons",
+  iconTitle: "Material Design Icons",
 } as const
 
 export class InputError extends Error {}

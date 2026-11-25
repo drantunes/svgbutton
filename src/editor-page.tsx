@@ -1,4 +1,6 @@
-import { BUTTON_PATH, decimalRanges, defaults } from "./values.ts"
+import { BUTTON_PATH, decimalRanges, defaults, editorDefaults } from "./values.ts"
+
+const previewParams = new URLSearchParams({ text: editorDefaults.text, icon: editorDefaults.icon })
 
 function EditorPage() {
   return (
@@ -8,6 +10,7 @@ function EditorPage() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#f5f3ee" />
         <title>SVG Button · GitHub README buttons</title>
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         <link rel="stylesheet" href="/editor.css" />
         <script type="module" src="/editor.js"></script>
       </head>
@@ -18,15 +21,18 @@ function EditorPage() {
               <h1>SVG Button<span>.</span></h1>
               <p>Customize an SVG button for your project's README.</p>
             </div>
-            <button id="theme-toggle" type="button" aria-label="Dark mode" aria-pressed="false" hidden>
-              <svg class="theme-icon theme-icon-light" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
-                <circle cx="12" cy="12" r="4" />
-                <path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42m0-14.14-1.42 1.42m-11.3 11.3-1.42 1.42" />
-              </svg>
-              <svg class="theme-icon theme-icon-dark" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round">
-                <path d="M20.7 15.4A8.9 8.9 0 0 1 8.6 3.3 9 9 0 1 0 20.7 15.4Z" />
-              </svg>
-            </button>
+            <div class="intro-actions">
+              <a class="repository-link" href="https://github.com/drantunes/svgbutton" target="_blank" rel="noopener noreferrer">GitHub</a>
+              <button id="theme-toggle" type="button" aria-label="Dark mode" aria-pressed="false" hidden>
+                <svg class="theme-icon theme-icon-light" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42m0-14.14-1.42 1.42m-11.3 11.3-1.42 1.42" />
+                </svg>
+                <svg class="theme-icon theme-icon-dark" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round">
+                  <path d="M20.7 15.4A8.9 8.9 0 0 1 8.6 3.3 9 9 0 1 0 20.7 15.4Z" />
+                </svg>
+              </button>
+            </div>
           </header>
 
           <form id="editor" class="workspace">
@@ -35,7 +41,7 @@ function EditorPage() {
                 <legend>Button</legend>
                 <div class="fields">
                   <label class="full">Label
-                    <input name="text" value={defaults.text} required />
+                    <input name="text" value={editorDefaults.text} required />
                   </label>
                   <label class="full">Destination URL
                     <input name="destination" type="url" placeholder="https://example.com/deploy" aria-describedby="destination-hint" />
@@ -53,15 +59,31 @@ function EditorPage() {
               <fieldset>
                 <legend>Appearance</legend>
                 <div class="fields">
-                  <label>Background <input name="bg" value={defaults.bg} spellcheck={false} /></label>
+                  <label class="full">Layout
+                    <select name="layout">
+                      <option value="standard" selected>Standard</option>
+                      <option value="split">Split</option>
+                    </select>
+                  </label>
+                  <label><span id="background-label">Background</span><input name="bg" value={defaults.bg} spellcheck={false} /></label>
+                  <label id="icon-background-field" hidden><span id="icon-background-label">Icon background</span><input name="iconBg" value={defaults.iconBg} spellcheck={false} /></label>
                   <label>Text color <input name="fg" value={defaults.fg} spellcheck={false} /></label>
                   <label>Border color <input name="border" value={defaults.border} spellcheck={false} /></label>
-                  <label>Divider color <input name="divider" value={defaults.divider} spellcheck={false} /></label>
+                  <label id="divider-field">Divider color <input name="divider" value={defaults.divider} spellcheck={false} /></label>
                   <label>Border width
                     <input name="borderWidth" type="number" {...decimalRanges.borderWidth} step="any" value={defaults.borderWidth} />
                   </label>
                   <label>Corner radius
                     <input name="radius" type="number" {...decimalRanges.radius} step="any" value={defaults.radius} />
+                  </label>
+                  <label>Extra horizontal padding (px)
+                    <input name="paddingX" type="number" {...decimalRanges.paddingX} step="any" value={defaults.paddingX} />
+                  </label>
+                  <label>Extra vertical padding (px)
+                    <input name="paddingY" type="number" {...decimalRanges.paddingY} step="any" value={defaults.paddingY} />
+                  </label>
+                  <label>Label size (px)
+                    <input name="fontSize" type="number" {...decimalRanges.fontSize} step="any" value={defaults.fontSize} />
                   </label>
                 </div>
               </fieldset>
@@ -73,24 +95,29 @@ function EditorPage() {
                     <select name="source">
                       <option value="mastra">Mastra</option>
                       <option value="none">No icon</option>
-                      <option value="simple-icons">Simple Icons</option>
+                      <option value="simple-icons" selected>Simple Icons</option>
+                      <option value="text">Text</option>
                       <option value="path">SVG path</option>
                       <option value="svg">Import SVG</option>
                     </select>
                   </label>
-                  <label>Icon color <input name="iconColor" value={defaults.iconColor} spellcheck={false} /></label>
-                  <label>Icon size (px)
+                  <label id="icon-text-field" class="full" hidden>Left label
+                    <input name="iconText" value="BUILD" spellcheck={false} />
+                  </label>
+                  <label><span id="icon-color-label">Icon color</span><input name="iconColor" value={defaults.iconColor} spellcheck={false} /></label>
+                  <label id="icon-size-field">Icon size (px)
                     <input name="iconSize" type="number" {...decimalRanges.iconSize} step="any" value={defaults.iconSize} />
                   </label>
                 </div>
                 <section id="simple-icons-fields" class="extra fields" hidden>
-                  <label class="full">Search Simple Icons
-                    <input id="simple-icons-search" type="search" placeholder="e.g. GitHub" autocomplete="off" />
-                  </label>
-                  <label class="full">Brand
-                    <select id="simple-icons-list" size={6} aria-describedby="simple-icons-results" disabled></select>
-                  </label>
-                  <small id="simple-icons-results" class="full hint" role="status"></small>
+                  <div class="brand-field full">
+                    <label id="simple-icons-label" for="simple-icons-list">Brand</label>
+                    <select id="simple-icons-list" aria-describedby="simple-icons-status">
+                      <option value="">Choose a brand</option>
+                      <option value={editorDefaults.icon} selected>{editorDefaults.iconTitle}</option>
+                    </select>
+                  </div>
+                  <small id="simple-icons-catalog-status" class="full hint" role="status"></small>
                   <small id="simple-icons-status" class="full hint" role="status"></small>
                 </section>
                 <section id="path-fields" class="extra fields" hidden>
@@ -121,21 +148,36 @@ function EditorPage() {
             <section class="result" aria-labelledby="preview-title">
               <div class="result-title">
                 <h2 id="preview-title">Preview</h2>
-                <span id="dimensions">110 × 34 px</span>
+                <span id="dimensions"></span>
               </div>
-              <div class="preview">
-                <img id="preview" src={BUTTON_PATH} alt={defaults.text} />
+              <div class="preview-toolbar">
+                <div id="preview-formats" class="preview-formats" role="group" aria-label="Preview format">
+                  <button type="button" data-format="image" aria-pressed="true">Image</button>
+                  <button type="button" data-format="markdown" aria-pressed="false">Markdown</button>
+                  <button type="button" data-format="svg" aria-pressed="false">SVG</button>
+                </div>
+                <div class="copy-control">
+                  <button id="copy-output" type="button" aria-label="Copy image URL" disabled>
+                    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                      <rect x="8" y="8" width="12" height="12" rx="2" />
+                      <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
+                    </svg>
+                  </button>
+                  <span id="copy-tooltip" class="copy-tooltip" role="status"></span>
+                </div>
+              </div>
+              <div id="image-preview" class="preview">
+                <img id="preview" src={`${BUTTON_PATH}?${previewParams}`} alt={editorDefaults.text} />
+              </div>
+              <div class="preview-code">
+                <pre aria-hidden="true"><code id="output-highlight"></code></pre>
+                <textarea id="output" aria-label="Image URL" readonly rows={3} spellcheck={false} wrap="off"></textarea>
               </div>
               <p id="render-status" role="status" hidden></p>
-              <label class="markdown">Markdown for GitHub
-                <textarea id="markdown" readonly rows={3} spellcheck={false}></textarea>
-              </label>
               <div class="actions">
-                <button id="copy-markdown" class="primary" type="button" disabled>Copy Markdown</button>
-                <button id="copy-url" type="button" disabled>Copy SVG URL</button>
                 <button id="download" type="button" disabled>Download SVG</button>
               </div>
-              <small id="action-status" class="hint" role="status"></small>
+              <small id="action-status" class="hint" role="status" hidden></small>
             </section>
           </form>
           <noscript>Enable JavaScript to edit and export the button.</noscript>

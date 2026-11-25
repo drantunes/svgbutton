@@ -32,9 +32,15 @@ test("GET serves the preset and HEAD returns matching headers with no body", asy
   assert.equal(createHash("sha256").update(await get.text()).digest("hex"), presetHash)
 })
 
-test("GET renders scale, a Unicode label, and a Base64URL icon with the requested colors", async () => {
+test("GET renders a scaled split button with a Unicode label and a Base64URL icon", async () => {
   const options = new URLSearchParams({
     text: "Café launch & résumé for the production release",
+    fontSize: "19.50",
+    paddingX: "7.5",
+    paddingY: "4",
+    layout: "split",
+    bg: "green",
+    iconBg: "#ABC",
     fg: "orange",
     iconColor: "blue",
     iconSvg: encodeIcon(monoIcon),
@@ -43,14 +49,23 @@ test("GET renders scale, a Unicode label, and a Base64URL icon with the requeste
   })
   const button = parseButton(options)
   const url = buttonUrl("https://button.example", button)!
+  assert.equal(url.searchParams.get("fontSize"), "19.5")
+  assert.equal(url.searchParams.get("paddingX"), "7.5")
+  assert.equal(url.searchParams.get("paddingY"), "4")
+  assert.equal(url.searchParams.get("layout"), "split")
+  assert.equal(url.searchParams.get("iconBg"), "#aabbcc")
   const response = await server.fetch(url.href)
   assert.equal(response.status, 200)
   const svg = await response.text()
   assert.equal(svg, renderButton(button))
-  assert.match(svg, /height="68"/)
+  assert.match(svg, /height="84"/)
+  assert.match(svg, /<g transform="translate\(7.5 4\)">/)
   assert.match(svg, /Café launch &amp; résumé for the production release/)
   assert.match(svg, /<text .*fill="#ffa500"/)
+  assert.match(svg, /font-size="19.5"/)
   assert.match(svg, /<g fill="none" stroke="#0000ff"/)
+  assert.match(svg, /stop-color="#aabbcc"\/><stop offset="[\d.]+" stop-color="#008000"\/>/)
+  assert.doesNotMatch(svg, /<line\b/)
 })
 
 test("the generated button URL round-trips tiny decimal values through the API", async () => {
@@ -64,6 +79,18 @@ test("the generated button URL round-trips tiny decimal values through the API",
   assert.equal(await response.text(), renderButton(button))
 })
 
+test("the API renders an encoded left label in split layout", async () => {
+  const button = parseButton(new URLSearchParams({ text: "PASSED", iconText: "Build & test", layout: "split" }))
+  const url = buttonUrl("https://button.example", button)!
+  assert.equal(url.searchParams.get("iconText"), "Build & test")
+  const response = await server.fetch(url.href)
+  assert.equal(response.status, 200)
+  const svg = await response.text()
+  assert.equal(svg, renderButton(button))
+  assert.match(svg, /Build &amp; test<\/text>/)
+  assert.match(svg, /PASSED<\/text>/)
+})
+
 test("the Worker revalidates API inputs and sends no-store on errors", async () => {
   const options: Record<string, string>[] = [
     ...invalidIcons.map((svg) => ({ iconSvg: encodeIcon(svg) })),
@@ -72,6 +99,8 @@ test("the Worker revalidates API inputs and sends no-store on errors", async () 
     { icon: "none", iconSvg: encodeIcon(monoIcon) },
     { icon: "github", iconSvg: encodeIcon(monoIcon) },
     { scale: "0.25" },
+    { fontSize: "25" },
+    { paddingY: "49" },
     { fg: "url(https://example.org/icon.svg)" },
     { unexpected: "true" },
   ]
@@ -109,16 +138,31 @@ test("the local Worker serves the editor and its assets and handles routing", as
   const markup = await index.text()
   assert.match(markup, /^<!doctype html>/)
   assert.match(markup, /<title>SVG Button · GitHub README buttons<\/title>/)
-  assert.ok(markup.includes(`src="${BUTTON_PATH}"`))
+  assert.ok(markup.includes(`src="${BUTTON_PATH}?text=Create+your+Button&amp;icon=materialdesignicons"`))
+  assert.match(markup, /name="text" value="Create your Button"/)
   assert.match(markup, /id="theme-toggle"[^>]*aria-label="Dark mode"[^>]*><svg class="theme-icon theme-icon-light"/)
   assert.match(markup, /class="theme-icon theme-icon-dark"/)
+  assert.match(markup, /<div class="intro-actions"><a [^>]*href="https:\/\/github.com\/drantunes\/svgbutton"[^>]*>GitHub<\/a><button id="theme-toggle"/)
+  assert.match(markup, /name="fontSize" type="number" min="8" max="24" step="any" value="15"/)
+  assert.match(markup, /name="paddingX" type="number" min="0" max="48" step="any" value="0"/)
+  assert.match(markup, /name="paddingY" type="number" min="0" max="48" step="any" value="0"/)
+  assert.match(markup, /<select name="layout"><option value="standard" selected="">Standard<\/option><option value="split">Split<\/option><\/select>/)
+  assert.match(markup, /id="icon-background-field" hidden=""><span id="icon-background-label">Icon background<\/span><input name="iconBg" value="#3a3a3a"/)
   assert.match(markup, /name="iconSize" type="number" min="8" max="24" step="any" value="20"/)
-  assert.match(markup, /<option value="simple-icons">Simple Icons<\/option>/)
+  assert.match(markup, /<option value="simple-icons" selected="">Simple Icons<\/option>/)
+  assert.match(markup, /<option value="text">Text<\/option>/)
+  assert.match(markup, /<option value="materialdesignicons" selected="">Material Design Icons<\/option>/)
   assert.match(index.headers.get("content-security-policy") ?? "", /connect-src 'self' https:/)
-  assert.match(markup, /Destination URL[\s\S]*Copy Markdown[\s\S]*Copy SVG URL[\s\S]*Download SVG/)
+  assert.match(markup, /data-format="image"[^>]*>Image<\/button>[\s\S]*data-format="markdown"[^>]*>Markdown<\/button>[\s\S]*data-format="svg"[^>]*>SVG<\/button>/)
+  assert.match(markup, /id="copy-output"[^>]*aria-label="Copy image URL"[^>]*><svg/)
+  assert.match(markup, /<textarea id="output"[^>]*readonly/)
+  const preview = await server.fetch(path({ text: "Create your Button", icon: "materialdesignicons" }))
+  assert.equal(preview.status, 200)
+  assert.match(await preview.text(), /<text [^>]+>Create your Button<\/text>/)
   const assets = [
     ["/editor.js", "text/javascript; charset=utf-8"],
     ["/editor.css", "text/css; charset=utf-8"],
+    ["/favicon.svg", "image/svg+xml; charset=utf-8"],
   ]
   for (const [resource, type] of assets) {
     const response = await server.fetch(resource)
