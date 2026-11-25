@@ -11,7 +11,9 @@ before(async () => {
   browser = await chromium.launch()
   url = (await server.listen()).url
 })
-after(async () => { await Promise.all([browser?.close(), server.close()]) })
+after(async () => {
+  await Promise.all([browser?.close(), server.close()])
+})
 
 const formats = ["Image", "Markdown", "SVG"] as const
 const transparent = "rgba(0, 0, 0, 0)"
@@ -43,17 +45,19 @@ for (const theme of ["light", "dark"] as const) {
     const picker = page.getByRole("group", { name: "Preview format" })
     const palette = palettes[theme]
 
-    async function assertSelection(selected: typeof formats[number]) {
-      const actual = await picker.getByRole("button").evaluateAll((buttons) => buttons.map((button) => {
-        const { color, backgroundColor, borderTopColor } = getComputedStyle(button)
-        return {
-          name: button.textContent?.trim(),
-          pressed: button.getAttribute("aria-pressed"),
-          color,
-          backgroundColor,
-          borderTopColor,
-        }
-      }))
+    async function assertSelection(selected: (typeof formats)[number]) {
+      const actual = await picker.getByRole("button").evaluateAll((buttons) =>
+        buttons.map((button) => {
+          const { color, backgroundColor, borderTopColor } = getComputedStyle(button)
+          return {
+            name: button.textContent?.trim(),
+            pressed: button.getAttribute("aria-pressed"),
+            color,
+            backgroundColor,
+            borderTopColor,
+          }
+        }),
+      )
       const expected = formats.map((name) => {
         const pressed = name === selected
         return {

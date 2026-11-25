@@ -50,13 +50,29 @@ export function simpleIconAssetPath(slug: string): string {
   return `/simple-icons/${encodeURIComponent(slug)}.svg`
 }
 
-const colors = new Map(Object.entries({
-  black: "#000000", white: "#ffffff", red: "#ff0000", green: "#008000",
-  blue: "#0000ff", yellow: "#ffff00", gray: "#808080", grey: "#808080",
-  silver: "#c0c0c0", maroon: "#800000", purple: "#800080", fuchsia: "#ff00ff",
-  lime: "#00ff00", olive: "#808000", navy: "#000080", teal: "#008080",
-  aqua: "#00ffff", orange: "#ffa500", transparent: "#00000000",
-}))
+const colors = new Map(
+  Object.entries({
+    black: "#000000",
+    white: "#ffffff",
+    red: "#ff0000",
+    green: "#008000",
+    blue: "#0000ff",
+    yellow: "#ffff00",
+    gray: "#808080",
+    grey: "#808080",
+    silver: "#c0c0c0",
+    maroon: "#800000",
+    purple: "#800080",
+    fuchsia: "#ff00ff",
+    lime: "#00ff00",
+    olive: "#808000",
+    navy: "#000080",
+    teal: "#008080",
+    aqua: "#00ffff",
+    orange: "#ffa500",
+    transparent: "#00000000",
+  }),
+)
 
 export function color(value: string, label: string): string {
   const normalized = value.trim().toLowerCase()
@@ -81,8 +97,12 @@ export function decimal(value: string, label: string, min: number, max: number):
 }
 
 export function escapeXml(value: string): string {
-  return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;").replaceAll("'", "&apos;")
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&apos;")
 }
 
 export function byteLength(value: string): number {
@@ -92,11 +112,14 @@ export function byteLength(value: string): number {
 export function encodeIcon(source: string): string {
   const bytes = new TextEncoder().encode(source)
   if (bytes.length > MAX_ICON_BYTES) throw new InputError("SVG exceeds the 16 KiB limit.")
-  return btoa(String.fromCharCode(...bytes)).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "")
+  return btoa(String.fromCharCode(...bytes))
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replace(/=+$/, "")
 }
 
 export function decodeIcon(value: string): string {
-  if (value.length > Math.ceil(MAX_ICON_BYTES * 4 / 3) || !/^[\w-]+$/.test(value)) {
+  if (value.length > Math.ceil((MAX_ICON_BYTES * 4) / 3) || !/^[\w-]+$/.test(value)) {
     throw new InputError("iconSvg: use unpadded Base64URL with up to 16 KiB of SVG.")
   }
   try {

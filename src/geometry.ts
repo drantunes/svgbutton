@@ -15,7 +15,10 @@ export function svgNumber(raw: string, label: string, min = -COORD_LIMIT, max = 
 }
 
 export function numberList(value: string, label: string): number[] {
-  return value.trim().split(/\s*,\s*|\s+/).map((part) => svgNumber(part, label))
+  return value
+    .trim()
+    .split(/\s*,\s*|\s+/)
+    .map((part) => svgNumber(part, label))
 }
 
 export type ViewBox = [number, number, number, number]
@@ -56,8 +59,12 @@ export function pathData(value: string): { value: string; commands: number } {
 }
 
 const transforms = new Map([
-  ["matrix", [6]], ["translate", [1, 2]], ["scale", [1, 2]],
-  ["rotate", [1, 3]], ["skewX", [1]], ["skewY", [1]],
+  ["matrix", [6]],
+  ["translate", [1, 2]],
+  ["scale", [1, 2]],
+  ["rotate", [1, 3]],
+  ["skewX", [1]],
+  ["skewY", [1]],
 ])
 
 export function transformList(value: string): string {

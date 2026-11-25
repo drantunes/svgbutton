@@ -3,13 +3,45 @@ import { normalizedSvg, parseSvg, pathIcon, renderIcon } from "./icon.ts"
 import type { IconGeometry } from "./icon.ts"
 import { DEPLOY_PATH, MASTRA_PATHS } from "./preset.ts"
 import {
-  BUTTON_PATH, byteLength, color, decimal, decimalRanges, decodeIcon, defaults, encodeIcon, escapeXml,
-  ICON_CENTER, InputError, isSimpleIconSlug, MAX_TEXT_LENGTH, MAX_URL_BYTES, SVG_NS,
+  BUTTON_PATH,
+  byteLength,
+  color,
+  decimal,
+  decimalRanges,
+  decodeIcon,
+  defaults,
+  encodeIcon,
+  escapeXml,
+  ICON_CENTER,
+  InputError,
+  isSimpleIconSlug,
+  MAX_TEXT_LENGTH,
+  MAX_URL_BYTES,
+  SVG_NS,
 } from "./values.ts"
 
 const keys = [
-  "text", "fontSize", "paddingX", "paddingY", "layout", "bg", "iconBg", "fg", "border", "borderWidth", "radius",
-  "divider", "iconColor", "iconSize", "icon", "iconText", "iconPath", "iconViewBox", "iconSvg", "scale", "rev",
+  "text",
+  "fontSize",
+  "paddingX",
+  "paddingY",
+  "layout",
+  "bg",
+  "iconBg",
+  "fg",
+  "border",
+  "borderWidth",
+  "radius",
+  "divider",
+  "iconColor",
+  "iconSize",
+  "icon",
+  "iconText",
+  "iconPath",
+  "iconViewBox",
+  "iconSvg",
+  "scale",
+  "rev",
 ] as const
 const known = new Set<string>(keys)
 
@@ -103,7 +135,10 @@ export function parseButton(params: URLSearchParams): Button {
   }
 
   return {
-    text, rev, icon, layout,
+    text,
+    rev,
+    icon,
+    layout,
     fontSize: readDecimal("fontSize"),
     paddingX: readDecimal("paddingX"),
     paddingY: readDecimal("paddingY"),
@@ -121,7 +156,8 @@ export function parseButton(params: URLSearchParams): Button {
 }
 
 const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" })
-const wide = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Extended_Pictographic}\p{Regional_Indicator}]/u
+const wide =
+  /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Extended_Pictographic}\p{Regional_Indicator}]/u
 
 function measureLabel(text: string): number {
   let width = 0
@@ -173,10 +209,14 @@ export function renderButton(button: Button, simpleIcon?: IconGeometry): string 
   if (split) {
     const boundary = svgNumber((dividerX + paddingX - inset) / (width - button.borderWidth))
     // Equal stop offsets create a hard edge inside the same rounded rectangle.
-    lines.push(`<defs><linearGradient id="split-background"><stop offset="${boundary}" stop-color="${button.iconBg}"/><stop offset="${boundary}" stop-color="${bg}"/></linearGradient></defs>`)
+    lines.push(
+      `<defs><linearGradient id="split-background"><stop offset="${boundary}" stop-color="${button.iconBg}"/><stop offset="${boundary}" stop-color="${bg}"/></linearGradient></defs>`,
+    )
   }
   const fill = split ? "url(#split-background)" : bg
-  lines.push(`<rect x="${inset}" y="${inset}" width="${svgNumber(width - button.borderWidth)}" height="${svgNumber(height - button.borderWidth)}" rx="${svgNumber(Math.max(0, button.radius - inset))}" fill="${fill}" stroke="${border}"${button.borderWidth === 1 ? "" : ` stroke-width="${button.borderWidth}"`}/>`)
+  lines.push(
+    `<rect x="${inset}" y="${inset}" width="${svgNumber(width - button.borderWidth)}" height="${svgNumber(height - button.borderWidth)}" rx="${svgNumber(Math.max(0, button.radius - inset))}" fill="${fill}" stroke="${border}"${button.borderWidth === 1 ? "" : ` stroke-width="${button.borderWidth}"`}/>`,
+  )
   const padded = paddingX !== 0 || paddingY !== 0
   if (padded) lines.push(`<g transform="translate(${paddingX} ${paddingY})">`)
   if (hasIcon && !split) {
