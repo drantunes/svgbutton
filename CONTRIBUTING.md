@@ -20,6 +20,7 @@ npm run dev
 Open [localhost:8787](http://localhost:8787/) to try the editor. Before opening a pull request, run the checks below.
 
 ```sh
+npm run lint
 npm run check
 npm test
 npm run deploy:check
