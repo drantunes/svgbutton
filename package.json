@@ -27,12 +27,12 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.9",
-    "@types/node": "^22.0.0",
+    "@types/node": "~24.13.6",
     "choices.js": "^11.2.4",
     "esbuild": "^0.28.2",
     "playwright": "^1.65.1",
     "simple-icons": "^16.38.1",
-    "typescript": "^5.9.0",
+    "typescript": "^7.0.2",
     "wrangler": "^4.168.0"
   }
 }
