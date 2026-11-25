@@ -30,7 +30,7 @@
     "esbuild": "^0.28.2",
     "playwright": "^1.65.1",
     "simple-icons": "^16.38.1",
-    "typescript": "^5.9.0",
+    "typescript": "^7.0.2",
     "wrangler": "^4.168.0"
   }
 }
