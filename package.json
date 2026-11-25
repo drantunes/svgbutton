@@ -11,6 +11,8 @@
     "build:icons": "node scripts/build-simple-icons.ts",
     "build:editor": "esbuild src/editor.ts --bundle --minify --format=esm --target=es2022 --outfile=dist/editor.js.txt",
     "dev": "wrangler dev",
+    "format": "biome format --write",
+    "format:check": "biome format",
     "lint": "biome lint --diagnostic-level=warn",
     "check": "tsc --noEmit",
     "test": "node --test tests/*.test.ts",
