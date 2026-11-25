@@ -8,7 +8,7 @@ function EditorPage() {
       <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="theme-color" content="#f5f3ee" />
+        <meta name="theme-color" content="#eff0f4" />
         <title>SVG Button · GitHub README buttons</title>
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         <link rel="stylesheet" href="/editor.css" />
