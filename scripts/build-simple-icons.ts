@@ -7,9 +7,7 @@ import { byteLength, InputError, isSimpleIconSlug, MAX_ICON_BYTES } from "../src
 const output = new URL("../dist/assets/simple-icons/", import.meta.url)
 const catalogFile = new URL("catalog.json", output)
 const stamp = new URL("../dist/simple-icons-build", import.meta.url)
-const inputs = [
-  import.meta.url, "../package-lock.json", "../src/icon.ts", "../src/geometry.ts", "../src/values.ts",
-]
+const inputs = [import.meta.url, "../package-lock.json", "../src/icon.ts", "../src/geometry.ts", "../src/values.ts"]
 const hash = createHash("sha256")
 for (const input of inputs) hash.update(await readFile(new URL(input, import.meta.url)))
 const fingerprint = hash.digest("hex")
@@ -20,8 +18,7 @@ const [lastBuild, catalog] = await Promise.all([
 ])
 
 if (lastBuild !== fingerprint || !catalog) {
-  const icons = Object.values(await import("simple-icons"))
-    .filter((value): value is SimpleIcon => "slug" in value)
+  const icons = Object.values(await import("simple-icons")).filter((value): value is SimpleIcon => "slug" in value)
   const entries: [slug: string, title: string][] = []
   await rm(stamp, { force: true })
   await rm(output, { recursive: true, force: true })

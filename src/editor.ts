@@ -31,8 +31,19 @@ const importSource = form.elements.namedItem("importSource") as HTMLTextAreaElem
 const simpleIcons = setupSimpleIconsPicker(render)
 
 const fields = [
-  "text", "fontSize", "paddingX", "paddingY", "layout", "bg", "fg", "border", "borderWidth", "radius",
-  "iconColor", "scale", "rev",
+  "text",
+  "fontSize",
+  "paddingX",
+  "paddingY",
+  "layout",
+  "bg",
+  "fg",
+  "border",
+  "borderWidth",
+  "radius",
+  "iconColor",
+  "scale",
+  "rev",
 ]
 const outputLabels = { image: "Image URL", markdown: "Markdown", svg: "SVG" }
 type Format = keyof typeof outputLabels
@@ -253,7 +264,9 @@ async function copy() {
     if (format !== copiedFormat || output.value !== value) return
     copyTooltip.textContent = "Copied!"
     window.clearTimeout(copyTimer)
-    copyTimer = window.setTimeout(() => { copyTooltip.textContent = "" }, 1800)
+    copyTimer = window.setTimeout(() => {
+      copyTooltip.textContent = ""
+    }, 1800)
   } catch {
     if (format !== copiedFormat || output.value !== value) return
     output.focus()
@@ -312,14 +325,20 @@ form.addEventListener("input", (event) => {
 preview.addEventListener("load", () => {
   dimensions.textContent = `${preview.naturalWidth} × ${preview.naturalHeight} px`
 })
-document.querySelector("#import-url")!.addEventListener("click", () => { void importIcon(importByUrl) })
-document.querySelector("#import-source")!.addEventListener("click", () => { void importIcon(() => importSource.value) })
+document.querySelector("#import-url")!.addEventListener("click", () => {
+  void importIcon(importByUrl)
+})
+document.querySelector("#import-source")!.addEventListener("click", () => {
+  void importIcon(() => importSource.value)
+})
 importFile.addEventListener("change", () => {
   const file = importFile.files?.[0]
   if (file) void importIcon(() => readIcon(file.stream()))
   importFile.value = ""
 })
-copyOutput.addEventListener("click", () => { void copy() })
+copyOutput.addEventListener("click", () => {
+  void copy()
+})
 download.addEventListener("click", () => {
   const link = document.createElement("a")
   link.href = previewUrl

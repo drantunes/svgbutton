@@ -24,12 +24,23 @@ test("GET serves the preset and HEAD returns matching headers with no body", asy
   assert.equal(get.headers.get("content-security-policy"), "default-src 'none'; sandbox")
   assert.equal(get.headers.get("x-content-type-options"), "nosniff")
   assert.equal(get.headers.get("referrer-policy"), "no-referrer")
-  for (const header of ["content-type", "cache-control", "content-security-policy", "x-content-type-options", "referrer-policy"]) {
+  for (const header of [
+    "content-type",
+    "cache-control",
+    "content-security-policy",
+    "x-content-type-options",
+    "referrer-policy",
+  ]) {
     assert.equal(head.headers.get(header), get.headers.get(header))
   }
   assert.equal(head.body, null)
   assert.equal(await head.text(), "")
-  assert.equal(createHash("sha256").update(await get.text()).digest("hex"), presetHash)
+  assert.equal(
+    createHash("sha256")
+      .update(await get.text())
+      .digest("hex"),
+    presetHash,
+  )
 })
 
 test("GET renders a scaled split button with a Unicode label and a Base64URL icon", async () => {
@@ -142,12 +153,21 @@ test("the local Worker serves the editor and its assets and handles routing", as
   assert.match(markup, /name="text" value="Create your Button"/)
   assert.match(markup, /id="theme-toggle"[^>]*aria-label="Dark mode"[^>]*><svg class="theme-icon theme-icon-light"/)
   assert.match(markup, /class="theme-icon theme-icon-dark"/)
-  assert.match(markup, /<div class="intro-actions"><a [^>]*href="https:\/\/github.com\/drantunes\/svgbutton"[^>]*>GitHub<\/a><button id="theme-toggle"/)
+  assert.match(
+    markup,
+    /<div class="intro-actions"><a [^>]*href="https:\/\/github.com\/drantunes\/svgbutton"[^>]*>GitHub<\/a><button id="theme-toggle"/,
+  )
   assert.match(markup, /name="fontSize" type="number" min="8" max="24" step="any" value="15"/)
   assert.match(markup, /name="paddingX" type="number" min="0" max="48" step="any" value="0"/)
   assert.match(markup, /name="paddingY" type="number" min="0" max="48" step="any" value="0"/)
-  assert.match(markup, /<select name="layout"><option value="standard" selected="">Standard<\/option><option value="split">Split<\/option><\/select>/)
-  assert.match(markup, /id="icon-background-field" hidden=""><label id="icon-background-label" for="color-iconBg">Icon background<\/label>/)
+  assert.match(
+    markup,
+    /<select name="layout"><option value="standard" selected="">Standard<\/option><option value="split">Split<\/option><\/select>/,
+  )
+  assert.match(
+    markup,
+    /id="icon-background-field" hidden=""><label id="icon-background-label" for="color-iconBg">Icon background<\/label>/,
+  )
   assert.match(markup, /id="color-iconBg" name="iconBg" value="#3a3a3a"/)
   for (const name of ["bg", "iconBg", "fg", "border", "divider", "iconColor"]) {
     const picker = markup.match(new RegExp(`<input[^>]*data-color-for="${name}"[^>]*>`))?.[0] ?? ""
@@ -159,7 +179,10 @@ test("the local Worker serves the editor and its assets and handles routing", as
   assert.match(markup, /<option value="text">Text<\/option>/)
   assert.match(markup, /<option value="materialdesignicons" selected="">Material Design Icons<\/option>/)
   assert.match(index.headers.get("content-security-policy") ?? "", /connect-src 'self' https:/)
-  assert.match(markup, /data-format="image"[^>]*>Image<\/button>[\s\S]*data-format="markdown"[^>]*>Markdown<\/button>[\s\S]*data-format="svg"[^>]*>SVG<\/button>/)
+  assert.match(
+    markup,
+    /data-format="image"[^>]*>Image<\/button>[\s\S]*data-format="markdown"[^>]*>Markdown<\/button>[\s\S]*data-format="svg"[^>]*>SVG<\/button>/,
+  )
   assert.match(markup, /id="copy-output"[^>]*aria-label="Copy image URL"[^>]*><svg/)
   assert.match(markup, /<textarea id="output"[^>]*readonly/)
   const preview = await server.fetch(path({ text: "Create your Button", icon: "materialdesignicons" }))
@@ -193,7 +216,7 @@ test("the local Worker serves the editor and its assets and handles routing", as
 test("a Simple Icons slug produces the same cacheable button as an embedded SVG", async () => {
   const catalog = await server.fetch("/simple-icons/catalog.json")
   assert.equal(catalog.status, 200)
-  const brands = await catalog.json() as [slug: string, title: string][]
+  const brands = (await catalog.json()) as [slug: string, title: string][]
   assert.ok(brands.some(([slug, title]) => slug === "github" && title === "GitHub"))
 
   const icon = await server.fetch("/simple-icons/github.svg")

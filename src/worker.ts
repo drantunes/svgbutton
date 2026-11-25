@@ -8,7 +8,8 @@ import styles from "./editor.css"
 import favicon from "./favicon.svg"
 import script from "../dist/editor.js.txt"
 
-const editorPolicy = "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' blob:; connect-src 'self' https:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+const editorPolicy =
+  "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' blob:; connect-src 'self' https:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
 const svgPolicy = "default-src 'none'; sandbox"
 
 const app = new Hono<{ Bindings: { ASSETS: { fetch(request: Request): Promise<Response> } } }>({
@@ -31,10 +32,12 @@ app.get("/", (c) => {
 
 app.get("/editor.css", (c) => c.body(choicesStyles + "\n" + styles, 200, { "Content-Type": "text/css; charset=utf-8" }))
 app.get("/editor.js", (c) => c.body(script, 200, { "Content-Type": "text/javascript; charset=utf-8" }))
-app.get("/favicon.svg", (c) => c.body(favicon, 200, {
-  "Content-Type": "image/svg+xml; charset=utf-8",
-  "Content-Security-Policy": svgPolicy,
-}))
+app.get("/favicon.svg", (c) =>
+  c.body(favicon, 200, {
+    "Content-Type": "image/svg+xml; charset=utf-8",
+    "Content-Security-Policy": svgPolicy,
+  }),
+)
 
 app.get(BUTTON_PATH, async (c) => {
   const requestUrl = c.req.url

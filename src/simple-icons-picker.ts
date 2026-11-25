@@ -36,9 +36,10 @@ export function setupSimpleIconsPicker(onIconChange: () => void) {
     try {
       const response = await fetch("/simple-icons/catalog.json")
       if (!response.ok) throw new Error()
-      const catalog = await response.json() as Icon[]
-      picker.setChoices(catalog.filter(([slug]) => slug !== editorDefaults.icon)
-        .map(([value, label]) => ({ value, label })))
+      const catalog = (await response.json()) as Icon[]
+      picker.setChoices(
+        catalog.filter(([slug]) => slug !== editorDefaults.icon).map(([value, label]) => ({ value, label })),
+      )
       catalogLoaded = true
       catalogStatus.textContent = ""
     } catch {
@@ -71,7 +72,9 @@ export function setupSimpleIconsPicker(onIconChange: () => void) {
     onIconChange()
   }
 
-  list.addEventListener("showDropdown", () => { void loadCatalog() })
+  list.addEventListener("showDropdown", () => {
+    void loadCatalog()
+  })
   list.addEventListener("change", () => {
     const option = list.selectedOptions[0]
     if (option?.value) void chooseIcon(option.value, option.text)
@@ -79,8 +82,12 @@ export function setupSimpleIconsPicker(onIconChange: () => void) {
 
   return {
     chooseIcon,
-    get value() { return icon },
-    get pending() { return iconLoading },
+    get value() {
+      return icon
+    },
+    get pending() {
+      return iconLoading
+    },
     show(active: boolean) {
       if (panel.hidden === !active) return
       panel.hidden = !active

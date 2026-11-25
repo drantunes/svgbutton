@@ -44,14 +44,20 @@ export function parseSvg(source: string): IconGeometry {
   let geometryCount = 0
   let commands = 0
 
-  parser.on("error", () => { throw new InputError("Invalid SVG XML structure.") })
+  parser.on("error", () => {
+    throw new InputError("Invalid SVG XML structure.")
+  })
   parser.on("xmldecl", ({ encoding, version }) => {
     if (version !== "1.0" || (encoding && encoding.toLowerCase() !== "utf-8")) {
       throw new InputError("SVG: use UTF-8 encoded XML 1.0.")
     }
   })
-  parser.on("doctype", () => { throw new InputError("SVG: DOCTYPE and custom entity declarations are unsupported.") })
-  parser.on("processinginstruction", () => { throw new InputError("SVG: processing instructions are unsupported.") })
+  parser.on("doctype", () => {
+    throw new InputError("SVG: DOCTYPE and custom entity declarations are unsupported.")
+  })
+  parser.on("processinginstruction", () => {
+    throw new InputError("SVG: processing instructions are unsupported.")
+  })
 
   function checkText(value: string) {
     const parent = stack.at(-1)
@@ -68,10 +74,14 @@ export function parseSvg(source: string): IconGeometry {
     const name = tag.local
     const properties = shapes.get(name)
     if (!parent) namespace = tag.uri
-    if (tag.prefix || tag.uri !== namespace || (namespace !== "" && namespace !== SVG_NS)
-      || (!parent ? name !== "svg" : !(
-        (parent.name === "svg" || parent.name === "g") && (name === "g" || properties || metadata.has(name))
-      ))) {
+    if (
+      tag.prefix ||
+      tag.uri !== namespace ||
+      (namespace !== "" && namespace !== SVG_NS) ||
+      (!parent
+        ? name !== "svg"
+        : !((parent.name === "svg" || parent.name === "g") && (name === "g" || properties || metadata.has(name))))
+    ) {
       throw new InputError(`SVG: unsupported element <${tag.name}>.`)
     }
 
@@ -91,9 +101,12 @@ export function parseSvg(source: string): IconGeometry {
 
       if (paintAttributes.has(key)) {
         const paint = value.trim()
-        attributes[key] = key !== "color" && /^(none|currentColor)$/i.test(paint)
-          ? (paint.toLowerCase() === "none" ? "none" : "currentColor")
-          : color(paint, key)
+        attributes[key] =
+          key !== "color" && /^(none|currentColor)$/i.test(paint)
+            ? paint.toLowerCase() === "none"
+              ? "none"
+              : "currentColor"
+            : color(paint, key)
       } else if (opacities.has(key)) {
         attributes[key] = String(svgNumber(value, key, 0, 1))
       } else if (key === "stroke-width" || key === "stroke-miterlimit") {
@@ -123,10 +136,16 @@ export function parseSvg(source: string): IconGeometry {
     }
 
     if (commands > PATH_COMMAND_LIMIT) throw new InputError("SVG: total path command and point limit exceeded.")
-    const required = ({
-      path: ["d"], rect: ["width", "height"], circle: ["r"], ellipse: ["rx", "ry"],
-      polygon: ["points"], polyline: ["points"],
-    } as Record<string, string[]>)[name]
+    const required = (
+      {
+        path: ["d"],
+        rect: ["width", "height"],
+        circle: ["r"],
+        ellipse: ["rx", "ry"],
+        polygon: ["points"],
+        polyline: ["points"],
+      } as Record<string, string[]>
+    )[name]
     if (required?.some((key) => !(key in attributes))) {
       throw new InputError(`SVG: required geometry attributes are missing on <${name}>.`)
     }
@@ -140,7 +159,8 @@ export function parseSvg(source: string): IconGeometry {
         const { width, height } = tag.attributes
         if (!width || !height) throw new InputError("SVG: provide a viewBox or width and height in pixels.")
         box = [
-          0, 0,
+          0,
+          0,
           svgNumber(width.value.trim().replace(/px$/, ""), "width", 0.001),
           svgNumber(height.value.trim().replace(/px$/, ""), "height", 0.001),
         ]
@@ -151,7 +171,9 @@ export function parseSvg(source: string): IconGeometry {
     if (properties) geometryCount++
     stack.push(node)
   })
-  parser.on("closetag", () => { stack.pop() })
+  parser.on("closetag", () => {
+    stack.pop()
+  })
   parser.write(source).close()
 
   if (!root || !box || !geometryCount) throw new InputError("SVG: include at least one supported shape.")
@@ -166,7 +188,10 @@ export function pathIcon(d: string, box: ViewBox): IconGeometry {
 }
 
 function serializeAttributes(attributes: Shape["attributes"]): string {
-  return Object.keys(attributes).sort().map((name) => ` ${name}="${escapeXml(attributes[name])}"`).join("")
+  return Object.keys(attributes)
+    .sort()
+    .map((name) => ` ${name}="${escapeXml(attributes[name])}"`)
+    .join("")
 }
 
 function serializeNode(node: Shape): string {
@@ -210,7 +235,11 @@ function recolor(node: Shape, ink: string, inheritedColor: string): Shape {
     if (paint.length === 9) {
       const alpha = Number.parseInt(paint.slice(7), 16)
       const inkAlpha = ink.length === 9 ? Number.parseInt(ink.slice(7), 16) : 255
-      attributes[key] = ink.slice(0, 7) + Math.round(alpha * inkAlpha / 255).toString(16).padStart(2, "0")
+      attributes[key] =
+        ink.slice(0, 7) +
+        Math.round((alpha * inkAlpha) / 255)
+          .toString(16)
+          .padStart(2, "0")
     } else {
       attributes[key] = ink
     }

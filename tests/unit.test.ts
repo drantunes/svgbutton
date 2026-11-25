@@ -30,7 +30,9 @@ test("font size resizes the label and adjusts the viewBox width", () => {
 
   const outlined = render({ fontSize: "12", icon: "none" })
   assert.match(outlined, /width="66" height="34"/)
-  assert.ok(outlined.includes(`d="${DEPLOY_PATH}" fill="#F2F2F2" transform="translate(13 21) scale(0.8) translate(-48 -22)"`))
+  assert.ok(
+    outlined.includes(`d="${DEPLOY_PATH}" fill="#F2F2F2" transform="translate(13 21) scale(0.8) translate(-48 -22)"`),
+  )
   assert.equal(render({ fontSize: "15.0" }), render())
   assert.throws(() => render({ fontSize: "7.9" }), /fontSize/)
   assert.throws(() => render({ fontSize: "24.1" }), /fontSize/)
@@ -61,7 +63,15 @@ test("long Unicode labels grow the button and escape XML characters", () => {
 })
 
 test("colors, border width, and radius are independent", () => {
-  const svg = render({ bg: "white", fg: "red", iconColor: "blue", border: "teal", borderWidth: "2", radius: "8", divider: "orange" })
+  const svg = render({
+    bg: "white",
+    fg: "red",
+    iconColor: "blue",
+    border: "teal",
+    borderWidth: "2",
+    radius: "8",
+    divider: "orange",
+  })
   assert.ok(svg.includes(`d="${DEPLOY_PATH}" fill="#ff0000"`))
   assert.ok(MASTRA_PATHS.every((d) => svg.includes(`d="${d}" fill="#0000ff"`)))
   assert.match(svg, /rx="7" fill="#ffffff" stroke="#008080" stroke-width="2"/)
@@ -72,8 +82,14 @@ test("colors, border width, and radius are independent", () => {
 test("split layout meets at the divider position and fills the rounded button without a line", () => {
   const colors = { bg: "transparent", iconBg: "#abc8" }
   const svg = render({ ...colors, layout: "split", paddingX: "6.5", borderWidth: "2", radius: "8" })
-  assert.match(svg, /<stop offset="0.36363636" stop-color="#aabbcc88"\/><stop offset="0.36363636" stop-color="#00000000"\/>/)
-  assert.match(svg, /<rect x="1" y="1" width="121" height="32" rx="7" fill="url\(#split-background\)" stroke="#18181B" stroke-width="2"\/>/)
+  assert.match(
+    svg,
+    /<stop offset="0.36363636" stop-color="#aabbcc88"\/><stop offset="0.36363636" stop-color="#00000000"\/>/,
+  )
+  assert.match(
+    svg,
+    /<rect x="1" y="1" width="121" height="32" rx="7" fill="url\(#split-background\)" stroke="#18181B" stroke-width="2"\/>/,
+  )
   assert.doesNotMatch(svg, /<line\b/)
   assert.equal(render({ ...colors, layout: "split", icon: "none" }), render({ bg: colors.bg, icon: "none" }))
   assert.equal(render({ layout: "standard", iconBg: "red" }), render())
@@ -101,8 +117,10 @@ test("icon size scales around the icon center without moving the divider or labe
   assert.match(svg, /width="110" height="34"/)
   assert.match(svg, /<line x1="38.5"[^>]*\/>\n<g transform="translate\(10.338725 8.5\) scale\(0.5\)">/)
   assert.ok(svg.includes(`</g>\n<path d="${DEPLOY_PATH}"`))
-  assert.match(render({ ...size, iconPath: "M0 0L4 2Z", iconViewBox: "0 0 4 2" }),
-    /scale\(0.5\)">\n<svg x="10.67745" y="7" width="20" height="20"/)
+  assert.match(
+    render({ ...size, iconPath: "M0 0L4 2Z", iconViewBox: "0 0 4 2" }),
+    /scale\(0.5\)">\n<svg x="10.67745" y="7" width="20" height="20"/,
+  )
   assert.equal(render({ ...size, icon: "none" }), render({ icon: "none" }))
   assert.equal(render({ iconSize: "20.0" }), render())
   assert.throws(() => render({ iconSize: "7.9" }), /iconSize/)
@@ -167,12 +185,19 @@ test("validation rejects invalid Base64URL, invalid XML, and unsupported content
 })
 
 test("URL generation orders parameters, omits defaults, and separates the destination", () => {
-  const button = parseButton(new URLSearchParams("rev=2&scale=1.0&fg=%23ABC&icon=mastra&bg=black&text=A%CC%81%26%5Bx%5D"))
+  const button = parseButton(
+    new URLSearchParams("rev=2&scale=1.0&fg=%23ABC&icon=mastra&bg=black&text=A%CC%81%26%5Bx%5D"),
+  )
   const url = buttonUrl(origin, button)
   assert.equal(url?.href, `${origin}/v1/button.svg?text=%C3%81%26%5Bx%5D&fg=%23aabbcc&rev=2`)
-  assert.equal(buttonUrl(origin, parseButton(new URLSearchParams("scale=1&layout=standard")))?.href, `${origin}/v1/button.svg`)
-  assert.equal(markdown(button.text, url!.href, "https://example.org/deploy(a)"),
-    `[![Á\\&\\[x\\]](${url!.href})](https://example.org/deploy%28a%29)`)
+  assert.equal(
+    buttonUrl(origin, parseButton(new URLSearchParams("scale=1&layout=standard")))?.href,
+    `${origin}/v1/button.svg`,
+  )
+  assert.equal(
+    markdown(button.text, url!.href, "https://example.org/deploy(a)"),
+    `[![Á\\&\\[x\\]](${url!.href})](https://example.org/deploy%28a%29)`,
+  )
   const iconButton = parseButton(new URLSearchParams({ iconSvg: encodeIcon(monoIcon) }))
   const iconUrl = buttonUrl(origin, iconButton)!
   assert.equal(renderButton(parseButton(iconUrl.searchParams)), renderButton(iconButton))
