@@ -25,6 +25,8 @@ npm test
 npm run deploy:check
 ```
 
+For editor changes, install the Chromium headless shell with `npx playwright install --only-shell chromium` and run `npm run test:browser`. On Linux, add `--with-deps` if you need the system dependencies.
+
 ## Open a pull request
 
 Push your branch and open a pull request targeting `main`. Describe what changed and how you verified it. Add `Closes #123` with the issue number if the pull request resolves it. Otherwise, link the issue for context. Include a screenshot when it helps show an editor change.
