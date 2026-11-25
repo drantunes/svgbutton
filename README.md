@@ -37,3 +37,7 @@ Select **Image** to preview the button and copy its hosted URL, or **SVG** to co
 You can also generate buttons directly from a URL. Find the supported parameters, SVG import limits, and self-hosting instructions in the [technical reference](docs/technical-reference.md).
 
 To report a bug or propose a change, see the [contribution guide](CONTRIBUTING.md).
+
+## License
+
+SVG Button is licensed under the [MIT License](LICENSE).

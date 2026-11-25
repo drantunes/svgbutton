@@ -1,5 +1,7 @@
 # Contributing to SVG Button
 
+Please use the [security policy](SECURITY.md) to report potential vulnerabilities privately.
+
 ## Open an issue first
 
 Search the [existing issues](https://github.com/drantunes/svgbutton/issues) to avoid duplicates. If there is already an issue for your change, use that discussion. Otherwise, [open an issue](https://github.com/drantunes/svgbutton/issues/new) before starting work.
