@@ -173,6 +173,7 @@ function EditorPage() {
                 <span id="dimensions"></span>
               </div>
               <div class="preview-toolbar">
+                {/* biome-ignore lint/a11y/useSemanticElements: This named group contains preview buttons within the editor form. */}
                 <div id="preview-formats" class="preview-formats" role="group" aria-label="Preview format">
                   <button type="button" data-format="image" aria-pressed="true">Image</button>
                   <button type="button" data-format="markdown" aria-pressed="false">Markdown</button>

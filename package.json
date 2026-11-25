@@ -11,6 +11,7 @@
     "build:icons": "node scripts/build-simple-icons.ts",
     "build:editor": "esbuild src/editor.ts --bundle --minify --format=esm --target=es2022 --outfile=dist/editor.js.txt",
     "dev": "wrangler dev",
+    "lint": "biome lint --diagnostic-level=warn",
     "check": "tsc --noEmit",
     "test": "node --test tests/*.test.ts",
     "test:unit": "node --test tests/unit.test.ts",
@@ -25,6 +26,7 @@
     "svg-pathdata": "^9.0.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.6.9",
     "@types/node": "~24.13.6",
     "choices.js": "^11.2.4",
     "esbuild": "^0.28.2",

@@ -29,6 +29,7 @@
 :root[data-theme="light"] { color-scheme: light; }
 :root[data-theme="dark"] { color-scheme: dark; }
 *, *::before, *::after { box-sizing: border-box; }
+/* biome-ignore lint/complexity/noImportantStyles: The hidden attribute must override component display styles. */
 [hidden] { display: none !important; }
 body { margin: 0; }
 .shell { width: min(1100px, 100% - 3rem); margin: 0 auto; padding: 4rem 0; }
@@ -75,6 +76,8 @@ input, select, textarea, button, .repository-link {
   background: var(--control);
 }
 input, select, textarea { width: 100%; min-width: 0; padding: .54rem .62rem; font-weight: 400; }
+button, .repository-link { padding: .58rem .72rem; cursor: pointer; font-size: .8rem; font-weight: 650; }
+button:disabled { opacity: .47; cursor: default; }
 textarea { resize: vertical; overflow-wrap: anywhere; }
 textarea, #dimensions { font-family: ui-monospace, monospace; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -191,9 +194,7 @@ textarea, #dimensions { font-family: ui-monospace, monospace; }
 }
 .actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .8rem; }
 
-button, .repository-link { padding: .58rem .72rem; cursor: pointer; font-size: .8rem; font-weight: 650; }
 button:hover:enabled, .repository-link:hover { background: var(--hover); }
-button:disabled { opacity: .47; cursor: default; }
 #action-status { display: block; min-height: 1.15rem; margin-top: .62rem; }
 
 @media (max-width: 760px) {
