@@ -25,7 +25,7 @@
     "svg-pathdata": "^9.0.0"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
+    "@types/node": "^26.6.6",
     "choices.js": "^11.2.4",
     "esbuild": "^0.28.2",
     "playwright": "^1.65.1",
