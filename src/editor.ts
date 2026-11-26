@@ -5,6 +5,12 @@ import { setupTheme } from "./theme.ts"
 import { byteLength, color, editorDefaults, encodeIcon, InputError, MAX_ICON_BYTES } from "./values.ts"
 
 const form = document.querySelector<HTMLFormElement>("#editor")!
+const requireSizingControl = <T extends HTMLElement>(selector: string, elementType: new () => T): T => {
+  const element = form.querySelector(selector)
+  if (!(element instanceof elementType)) throw new Error(`Missing sizing control ${selector}.`)
+  return element
+}
+
 const preview = document.querySelector<HTMLImageElement>("#preview")!
 const imagePreview = document.querySelector<HTMLElement>("#image-preview")!
 const formatButtons = document.querySelectorAll<HTMLButtonElement>("#preview-formats button")
@@ -62,12 +68,6 @@ let copyTimer: number | undefined
 let previewUrl = ""
 let importedIcon = ""
 let importAttempt = 0
-
-function requireSizingControl<T extends HTMLElement>(selector: string, elementType: new () => T): T {
-  const element = form.querySelector(selector)
-  if (!(element instanceof elementType)) throw new Error(`Missing sizing control ${selector}.`)
-  return element
-}
 
 function field(name: string): string {
   return (form.elements.namedItem(name) as HTMLInputElement | HTMLSelectElement).value
