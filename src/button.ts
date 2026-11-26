@@ -249,7 +249,7 @@ const renderSvgRoot = ({ fixedSize, scale }: Button, { width, height }: Dimensio
   return `<svg width="${outputWidth}" height="${outputHeight}" viewBox="0 0 ${width} ${height}" fill="none" xmlns="${SVG_NS}"${fixedStyle}>`
 }
 
-function renderBackground(button: Button, { width, height, split, dividerX }: ButtonLayout): string[] {
+const renderBackground = (button: Button, { width, height, split, dividerX }: ButtonLayout): string[] => {
   const inset = button.borderWidth / 2
   const bg = button.bg === defaults.bg ? "black" : button.bg
   const border = button.border === defaults.border ? "#18181B" : button.border
