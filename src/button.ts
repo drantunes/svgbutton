@@ -304,7 +304,7 @@ const renderButtonIcon = (button: Button, layout: ButtonLayout, simpleIcon?: Ico
   return [`<g transform="translate(${x} ${y}) scale(${svgNumber(factor)})">`, ...artwork, "</g>"]
 }
 
-export function renderButton(button: Button, simpleIcon?: IconGeometry): string {
+export const renderButton = (button: Button, simpleIcon?: IconGeometry): string => {
   const layout = buttonLayout(button)
   const { paddingX, paddingY } = button
   const lines = [renderSvgRoot(button, layout), ...renderBackground(button, layout)]
