@@ -126,6 +126,15 @@ function destination(value: string): string {
   throw new InputError("Destination URL: enter a complete HTTP or HTTPS address.")
 }
 
+function setSizeParams(params: URLSearchParams) {
+  if (fixedSize.checked) {
+    params.set("width", fixedWidth.value)
+    params.set("height", fixedHeight.value)
+  } else {
+    params.set("scale", scale.value)
+  }
+}
+
 function render() {
   const source = field("source")
   const split = field("layout") === "split"
@@ -155,12 +164,7 @@ function render() {
     const selectedIcon = source === "simple-icons" ? simpleIcons.value : undefined
     const params = new URLSearchParams()
     for (const name of fields) params.set(name, field(name))
-    if (fixedSize.checked) {
-      params.set("width", fixedWidth.value)
-      params.set("height", fixedHeight.value)
-    } else {
-      params.set("scale", scale.value)
-    }
+    setSizeParams(params)
     if (!hasLeftLabel) params.set("iconSize", field("iconSize"))
     if (!iconBackgroundField.hidden) params.set("iconBg", field("iconBg"))
     if (!dividerField.hidden) params.set("divider", field("divider"))
@@ -336,12 +340,13 @@ for (const picker of form.querySelectorAll<HTMLInputElement>("input[type=color][
 
 form.addEventListener("submit", (event) => event.preventDefault())
 output.addEventListener("scroll", syncOutputScroll)
+fixedSize.addEventListener("input", () => {
+  if (!fixedSize.checked) return
+  fixedWidth.value ||= String(preview.naturalWidth || 200)
+  fixedHeight.value ||= String(preview.naturalHeight || 34)
+})
 form.addEventListener("input", (event) => {
   const target = event.target as HTMLInputElement
-  if (target === fixedSize && fixedSize.checked) {
-    fixedWidth.value ||= String(preview.naturalWidth || 200)
-    fixedHeight.value ||= String(preview.naturalHeight || 34)
-  }
   if (target.name && !target.name.startsWith("import")) render()
 })
 preview.addEventListener("load", () => {
