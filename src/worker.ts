@@ -12,7 +12,9 @@ const editorPolicy =
   "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' blob:; connect-src 'self' https:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
 const svgPolicy = "default-src 'none'; sandbox"
 
-const app = new Hono<{ Bindings: { ASSETS: { fetch(request: Request): Promise<Response> } } }>({
+type Assets = { fetch(request: Request): Promise<Response> }
+
+const app = new Hono<{ Bindings: { ASSETS: Assets } }>({
   // Keep percent-encoded paths distinct from registered routes.
   getPath: (request) => new URL(request.url).pathname,
 })
@@ -39,6 +41,14 @@ app.get("/favicon.svg", (c) =>
   }),
 )
 
+const fetchSimpleIcon = async (assets: Assets, slug: string, requestUrl: string): Promise<IconGeometry> => {
+  const assetUrl = new URL(simpleIconAssetPath(slug), requestUrl)
+  const asset = await assets.fetch(new Request(assetUrl))
+  if (asset.status === 404) throw new InputError(`icon: unknown Simple Icons slug "${slug}".`)
+  if (!asset.ok) throw new Error(`Could not load Simple Icons asset "${slug}" (HTTP ${asset.status}).`)
+  return parseSvg(await asset.text())
+}
+
 app.get(BUTTON_PATH, async (c) => {
   const requestUrl = c.req.url
   if (byteLength(requestUrl) > MAX_URL_BYTES) {
@@ -46,21 +56,14 @@ app.get(BUTTON_PATH, async (c) => {
   }
 
   const button = parseButton(new URL(requestUrl).searchParams)
-  let simpleIcon: IconGeometry | undefined
-  if (button.icon.kind === "simple") {
-    const { slug } = button.icon
-    const assetUrl = new URL(simpleIconAssetPath(slug), requestUrl)
-    const asset = await c.env.ASSETS.fetch(new Request(assetUrl))
-    if (asset.status === 404) throw new InputError(`icon: unknown Simple Icons slug "${slug}".`)
-    if (!asset.ok) throw new Error(`Could not load Simple Icons asset "${slug}" (HTTP ${asset.status}).`)
-    simpleIcon = parseSvg(await asset.text())
-  }
+  const simpleIcon =
+    button.icon.kind === "simple" ? await fetchSimpleIcon(c.env.ASSETS, button.icon.slug, requestUrl) : undefined
 
   const svg = renderButton(button, simpleIcon)
   return c.body(svg, 200, {
     "Content-Type": "image/svg+xml; charset=utf-8",
     "Cache-Control": "public, max-age=86400",
-    "Content-Security-Policy": svgPolicy,
+    "Content-Security-Policy": button.fixedSize ? `${svgPolicy}; style-src-attr 'unsafe-inline'` : svgPolicy,
   })
 })
 

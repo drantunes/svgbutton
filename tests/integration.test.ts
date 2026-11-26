@@ -67,6 +67,7 @@ test("GET renders a scaled split button with a Unicode label and a Base64URL ico
   assert.equal(url.searchParams.get("iconBg"), "#aabbcc")
   const response = await server.fetch(url.href)
   assert.equal(response.status, 200)
+  assert.equal(response.headers.get("content-security-policy"), "default-src 'none'; sandbox")
   const svg = await response.text()
   assert.equal(svg, renderButton(button))
   assert.match(svg, /height="84"/)
@@ -90,6 +91,56 @@ test("the generated button URL round-trips tiny decimal values through the API",
   assert.equal(await response.text(), renderButton(button))
 })
 
+test("fixed dimensions override scale while preserving the viewBox", async () => {
+  const button = parseButton(new URLSearchParams("scale=2&width=240.50&height=74"))
+  const url = buttonUrl("https://button.example", button)
+  assert.ok(url)
+  assert.equal(url.search, "?scale=2&width=240.5&height=74")
+
+  const response = await server.fetch(url.href)
+  assert.equal(response.status, 200)
+  assert.equal(
+    response.headers.get("content-security-policy"),
+    "default-src 'none'; sandbox; style-src-attr 'unsafe-inline'",
+  )
+  const svg = await response.text()
+  assert.equal(svg, renderButton(button))
+  assert.match(svg, /^<svg width="240\.5" height="74" viewBox="0 0 110 34"/)
+  const style = svg.match(/^<svg [^>]* style="([^"]*)"/)?.[1]
+  assert.ok(style)
+  assert.deepEqual(
+    new Set(style.split(";")),
+    new Set([
+      "width:240.5px!important",
+      "min-width:240.5px!important",
+      "max-width:240.5px!important",
+      "height:74px!important",
+      "min-height:74px!important",
+      "max-height:74px!important",
+    ]),
+  )
+})
+
+test("the API limits the raster area of fixed dimensions", async () => {
+  const boundary = await server.fetch(path({ width: "32768", height: "256" }))
+  assert.equal(boundary.status, 200)
+
+  const oversized = await server.fetch(path({ width: "32768", height: "256.01" }))
+  assert.equal(oversized.status, 400)
+  assert.match(await oversized.text(), /width × height must be at most 8,388,608 pixels/)
+})
+
+test("the API accepts the inclusive bounds for each fixed dimension", async () => {
+  for (const [width, height] of [
+    ["1", "32768"],
+    ["32768", "1"],
+  ]) {
+    const response = await server.fetch(path({ width, height }))
+    assert.equal(response.status, 200)
+    assert.ok((await response.text()).startsWith(`<svg width="${width}" height="${height}"`))
+  }
+})
+
 test("the API renders an encoded left label in split layout", async () => {
   const button = parseButton(new URLSearchParams({ text: "PASSED", iconText: "Build & test", layout: "split" }))
   const url = buttonUrl("https://button.example", button)!
@@ -110,6 +161,14 @@ test("the Worker revalidates API inputs and sends no-store on errors", async () 
     { icon: "none", iconSvg: encodeIcon(monoIcon) },
     { icon: "github", iconSvg: encodeIcon(monoIcon) },
     { scale: "0.25" },
+    { width: "240" },
+    { height: "74" },
+    { width: "", height: "74" },
+    { width: "240", height: "" },
+    { width: "32769", height: "1" },
+    { width: "1", height: "32769" },
+    { width: "100%", height: "74" },
+    { width: "240", height: "0" },
     { fontSize: "25" },
     { paddingY: "49" },
     { fg: "url(https://example.org/icon.svg)" },

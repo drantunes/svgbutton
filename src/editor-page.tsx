@@ -1,4 +1,4 @@
-import { BUTTON_PATH, decimalRanges, defaults, editorDefaults } from "./values.ts"
+import { BUTTON_PATH, decimalRanges, defaults, editorDefaults, fixedSizeRange } from "./values.ts"
 
 const previewParams = new URLSearchParams({ text: editorDefaults.text, icon: editorDefaults.icon })
 
@@ -30,7 +30,7 @@ function ColorField({ name, label, labelId = `${name}-color-label`, fieldId, hid
   )
 }
 
-function EditorPage() {
+const EditorPage = () => {
   return (
     <html lang="en">
       <head>
@@ -131,6 +131,20 @@ function EditorPage() {
                     Revision
                     <input name="rev" maxlength={64} placeholder="e.g. v2" />
                   </label>
+                  <label class="full checkbox">
+                    <input name="fixedSize" type="checkbox" aria-controls="fixed-size-fields" />
+                    Fixed Size
+                  </label>
+                  <fieldset id="fixed-size-fields" class="full fields" hidden disabled>
+                    <label>
+                      Width (px)
+                      <input name="width" type="number" {...fixedSizeRange} step="any" required />
+                    </label>
+                    <label>
+                      Height (px)
+                      <input name="height" type="number" {...fixedSizeRange} step="any" required />
+                    </label>
+                  </fieldset>
                 </div>
               </section>
 

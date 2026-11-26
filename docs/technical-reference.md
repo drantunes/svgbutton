@@ -29,8 +29,14 @@ With no parameters, the API returns the original 110 × 34 Mastra Deploy button.
 | `iconPath` | | SVG path data (`d`). Use with `iconViewBox`. |
 | `iconViewBox` | | Four numbers separated by spaces or commas. Use with `iconPath`. |
 | `iconSvg` | | UTF-8 SVG encoded as Base64URL without padding. |
-| `scale` | `1` | 0.5–3. Changes the output dimensions and keeps the same `viewBox`. |
+| `scale` | `1` | 0.5–3. Scales the automatic output dimensions and keeps the same `viewBox`. |
 | `rev` | | Optional cache key suffix. Up to 64 ASCII letters, digits, periods, hyphens, or underscores. |
+| `width` | | Fixed width in pixels, 1–32768. Use with `height`. |
+| `height` | | Fixed height in pixels, 1–32768. Use with `width`. |
+
+The editor's **Fixed Size** option sends both dimensions. Together they take precedence over `scale`. The product of the two dimensions, each rounded up to a whole pixel, must be at most 8,388,608. The SVG fits the button artwork within the chosen dimensions and keeps its proportions.
+
+When you paste the SVG markup into HTML, its inline styles keep the chosen dimensions if the host page's Content Security Policy allows style attributes. If the policy blocks those attributes, the SVG has intrinsic dimensions from `width` and `height`, and the host page can override them with CSS. When you load the SVG through an `<img>` element, the host page controls the sizing of that element.
 
 Choose at most one of `icon`, `iconText`, `iconPath`, and `iconSvg`. Colors accept 3-, 4-, 6-, and 8-digit hex with an optional `#`. See [the color list](../src/values.ts) for supported names. URL-encode query values, including `#` as `%23`.
 

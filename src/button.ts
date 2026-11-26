@@ -12,15 +12,17 @@ import {
   defaults,
   encodeIcon,
   escapeXml,
+  fixedSizeRange,
   ICON_CENTER,
   InputError,
   isSimpleIconSlug,
+  MAX_FIXED_SIZE_PIXELS,
   MAX_TEXT_LENGTH,
   MAX_URL_BYTES,
   SVG_NS,
 } from "./values.ts"
 
-const keys = [
+const buttonFields = [
   "text",
   "fontSize",
   "paddingX",
@@ -35,21 +37,28 @@ const keys = [
   "divider",
   "iconColor",
   "iconSize",
+] as const
+const scaleAndRevision = ["scale", "rev"] as const
+const known = new Set<string>([
+  ...buttonFields,
   "icon",
   "iconText",
   "iconPath",
   "iconViewBox",
   "iconSvg",
-  "scale",
-  "rev",
-] as const
-const known = new Set<string>(keys)
+  ...scaleAndRevision,
+  "width",
+  "height",
+])
 
 type Icon =
-  | { kind: "mastra" | "none" }
+  | { kind: "mastra" }
+  | { kind: "none" }
   | { kind: "text"; label: string }
   | { kind: "path" | "svg"; geometry: IconGeometry }
   | { kind: "simple"; slug: string }
+
+type Dimensions = { width: number; height: number }
 
 type Button = {
   text: string
@@ -69,6 +78,7 @@ type Button = {
   icon: Icon
   scale: number
   rev: string
+  fixedSize?: Dimensions
 }
 
 function readLabel(value: string, field: string): string {
@@ -79,24 +89,54 @@ function readLabel(value: string, field: string): string {
   return text
 }
 
-export function parseButton(params: URLSearchParams): Button {
+const readFixedSize = (params: URLSearchParams): Dimensions | undefined => {
+  const supplied = [params.get("width"), params.get("height")].filter((value) => value !== null)
+  if (supplied.length === 0) return undefined
+  if (supplied.length !== 2) throw new InputError("Provide width and height together.")
+
+  const { min, max } = fixedSizeRange
+  const [rawWidth, rawHeight] = supplied
+  const width = decimal(rawWidth, "Width", min, max)
+  const height = decimal(rawHeight, "Height", min, max)
+  if (Math.ceil(width) * Math.ceil(height) > MAX_FIXED_SIZE_PIXELS) {
+    throw new InputError(
+      `Fixed Size: width × height must be at most ${MAX_FIXED_SIZE_PIXELS.toLocaleString("en-US")} pixels (rounded up on each axis).`,
+    )
+  }
+  return { width, height }
+}
+
+const validateParamNames = (params: URLSearchParams) => {
   const seen = new Set<string>()
   for (const key of params.keys()) {
     if (!known.has(key)) throw new InputError(`Unknown parameter: ${key}.`)
     if (seen.has(key)) throw new InputError(`Duplicate parameter: ${key}.`)
     seen.add(key)
   }
+}
 
-  const text = readLabel(params.get("text") ?? defaults.text, "text")
-  const rev = params.get("rev") ?? defaults.rev
+const readRevision = (rev: string): string => {
   if (!/^[a-zA-Z\d._-]{0,64}$/.test(rev)) {
     throw new InputError("rev: use up to 64 ASCII letters, digits, periods, hyphens, or underscores.")
   }
-  const layout = params.get("layout") ?? defaults.layout
+  return rev
+}
+
+const readLayout = (layout: string): Button["layout"] => {
   if (layout !== "standard" && layout !== "split") {
     throw new InputError('layout: use "standard" or "split".')
   }
+  return layout
+}
 
+const readNamedIcon = (name: string | null): Icon => {
+  if (name === null || name === "mastra") return { kind: "mastra" }
+  if (name === "none") return { kind: "none" }
+  if (!isSimpleIconSlug(name)) throw new InputError('icon: use "mastra", "none", or a lowercase Simple Icons slug.')
+  return { kind: "simple", slug: name }
+}
+
+const readIconParams = (params: URLSearchParams) => {
   const name = params.get("icon")
   const iconText = params.get("iconText")
   const path = params.get("iconPath")
@@ -108,22 +148,24 @@ export function parseButton(params: URLSearchParams): Button {
   if ((path === null) !== (box === null)) {
     throw new InputError("Provide iconPath and iconViewBox together.")
   }
+  return { name, iconText, path, box, source }
+}
 
-  let icon: Icon = { kind: "mastra" }
-  if (path !== null && box !== null) {
-    icon = { kind: "path", geometry: pathIcon(pathData(path).value, viewBox(box)) }
-  } else if (source !== null) {
-    icon = { kind: "svg", geometry: parseSvg(decodeIcon(source)) }
-  } else if (iconText !== null) {
-    icon = { kind: "text", label: readLabel(iconText, "iconText") }
-  } else if (name === "none") {
-    icon = { kind: "none" }
-  } else if (name !== null && name !== "mastra") {
-    if (!isSimpleIconSlug(name)) {
-      throw new InputError('icon: use "mastra", "none", or a lowercase Simple Icons slug.')
-    }
-    icon = { kind: "simple", slug: name }
-  }
+const readIcon = (params: URLSearchParams): Icon => {
+  const { name, iconText, path, box, source } = readIconParams(params)
+  if (path !== null && box !== null) return { kind: "path", geometry: pathIcon(pathData(path).value, viewBox(box)) }
+  if (source !== null) return { kind: "svg", geometry: parseSvg(decodeIcon(source)) }
+  if (iconText !== null) return { kind: "text", label: readLabel(iconText, "iconText") }
+  return readNamedIcon(name)
+}
+
+export const parseButton = (params: URLSearchParams): Button => {
+  validateParamNames(params)
+  const text = readLabel(params.get("text") ?? defaults.text, "text")
+  const rev = readRevision(params.get("rev") ?? defaults.rev)
+  const layout = readLayout(params.get("layout") ?? defaults.layout)
+  const fixedSize = readFixedSize(params)
+  const icon = readIcon(params)
 
   function readColor(key: "bg" | "iconBg" | "fg" | "border" | "divider" | "iconColor") {
     return color(params.get(key) ?? defaults[key], key)
@@ -152,6 +194,7 @@ export function parseButton(params: URLSearchParams): Button {
     borderWidth: readDecimal("borderWidth"),
     radius: readDecimal("radius"),
     scale: readDecimal("scale"),
+    fixedSize,
   }
 }
 
@@ -176,80 +219,128 @@ function svgNumber(value: number): number {
   return Number(value.toFixed(8))
 }
 
-export function renderButton(button: Button, simpleIcon?: IconGeometry): string {
-  const { icon, text, fontSize, paddingX, paddingY, scale } = button
+const ICON_TEXT_X = 13
+const PRESET_TEXT_X = 48
+const PRESET_TEXT_Y = 22
+
+const labelPlacement = (icon: Icon, textScale: number) => {
+  if (icon.kind === "text") {
+    const iconTextWidth = svgNumber(measureLabel(icon.label) * textScale)
+    const dividerX = ICON_TEXT_X + Math.ceil(iconTextWidth) + 10
+    return { iconTextWidth, dividerX, textX: dividerX + 10 }
+  }
+  return { iconTextWidth: 0, dividerX: 38.5, textX: icon.kind === "none" ? 13 : PRESET_TEXT_X }
+}
+
+const buttonLayout = (button: Button) => {
+  const { icon, text, fontSize, paddingX, paddingY } = button
   const hasIcon = icon.kind !== "none"
   const split = hasIcon && button.layout === "split"
   const textScale = fontSize / defaults.fontSize
-  const iconTextX = 13
-  const iconTextWidth = icon.kind === "text" ? svgNumber(measureLabel(icon.label) * textScale) : 0
-  const dividerX = icon.kind === "text" ? iconTextX + Math.ceil(iconTextWidth) + 10 : 38.5
+  const { iconTextWidth, dividerX, textX } = labelPlacement(icon, textScale)
   const outlined = text === defaults.text
-  const presetTextX = 48
-  const presetTextY = 22
-  const textX = icon.kind === "text" ? dividerX + 10 : hasIcon ? presetTextX : 13
-  const textY = svgNumber(presetTextY + (fontSize - defaults.fontSize) / 3)
+  const textY = svgNumber(PRESET_TEXT_Y + (fontSize - defaults.fontSize) / 3)
   const textWidth = svgNumber((outlined ? 50 : measureLabel(text)) * textScale)
   const width = svgNumber(textX + Math.ceil(textWidth) + (hasIcon ? 12 : 13) + 2 * paddingX)
   const height = svgNumber(34 + 2 * paddingY)
+  return {
+    hasIcon,
+    split,
+    fontSize,
+    textScale,
+    iconTextWidth,
+    dividerX,
+    outlined,
+    textX,
+    textY,
+    textWidth,
+    width,
+    height,
+  }
+}
+
+type ButtonLayout = ReturnType<typeof buttonLayout>
+
+const renderSvgRoot = ({ fixedSize, scale }: Button, { width, height }: Dimensions): string => {
+  const { width: outputWidth, height: outputHeight } = fixedSize ?? {
+    width: svgNumber(width * scale),
+    height: svgNumber(height * scale),
+  }
+  const fixedStyle = fixedSize
+    ? ` style="width:${outputWidth}px!important;min-width:${outputWidth}px!important;max-width:${outputWidth}px!important;height:${outputHeight}px!important;min-height:${outputHeight}px!important;max-height:${outputHeight}px!important"`
+    : ""
+  return `<svg width="${outputWidth}" height="${outputHeight}" viewBox="0 0 ${width} ${height}" fill="none" xmlns="${SVG_NS}"${fixedStyle}>`
+}
+
+const renderBackground = (button: Button, { width, height, split, dividerX }: ButtonLayout): string[] => {
   const inset = button.borderWidth / 2
   const bg = button.bg === defaults.bg ? "black" : button.bg
   const border = button.border === defaults.border ? "#18181B" : button.border
-  const divider = button.divider === defaults.divider ? "#3A3A3A" : button.divider
-  const fg = button.fg === defaults.fg ? "#F2F2F2" : button.fg
-  const ink = button.iconColor === defaults.iconColor ? "#F2F2F2" : button.iconColor
+  const strokeWidth = button.borderWidth === defaults.borderWidth ? "" : ` stroke-width="${button.borderWidth}"`
+  const rect = (fill: string) =>
+    `<rect x="${inset}" y="${inset}" width="${svgNumber(width - button.borderWidth)}" height="${svgNumber(height - button.borderWidth)}" rx="${svgNumber(Math.max(0, button.radius - inset))}" fill="${fill}" stroke="${border}"${strokeWidth}/>`
+  if (!split) return [rect(bg)]
 
-  function labelSvg(label: string, x: number, width: number, fill: string): string {
-    return `<text x="${x}" y="${textY}" fill="${fill}" font-family="system-ui, sans-serif" font-size="${fontSize}" font-weight="600" direction="ltr" unicode-bidi="plaintext" xml:space="preserve" textLength="${width}" lengthAdjust="spacingAndGlyphs">${escapeXml(label)}</text>`
-  }
-
-  const lines = [
-    `<svg width="${svgNumber(width * scale)}" height="${svgNumber(height * scale)}" viewBox="0 0 ${width} ${height}" fill="none" xmlns="${SVG_NS}">`,
+  const boundary = svgNumber((dividerX + button.paddingX - inset) / (width - button.borderWidth))
+  // Equal stop offsets create a hard edge inside the same rounded rectangle.
+  return [
+    `<defs><linearGradient id="split-background"><stop offset="${boundary}" stop-color="${button.iconBg}"/><stop offset="${boundary}" stop-color="${bg}"/></linearGradient></defs>`,
+    rect("url(#split-background)"),
   ]
-  if (split) {
-    const boundary = svgNumber((dividerX + paddingX - inset) / (width - button.borderWidth))
-    // Equal stop offsets create a hard edge inside the same rounded rectangle.
-    lines.push(
-      `<defs><linearGradient id="split-background"><stop offset="${boundary}" stop-color="${button.iconBg}"/><stop offset="${boundary}" stop-color="${bg}"/></linearGradient></defs>`,
-    )
+}
+
+const labelSvg = (label: string, x: number, width: number, fill: string, { fontSize, textY }: ButtonLayout): string => {
+  return `<text x="${x}" y="${textY}" fill="${fill}" font-family="system-ui, sans-serif" font-size="${fontSize}" font-weight="600" direction="ltr" unicode-bidi="plaintext" xml:space="preserve" textLength="${width}" lengthAdjust="spacingAndGlyphs">${escapeXml(label)}</text>`
+}
+
+const renderButtonLabel = (button: Button, layout: ButtonLayout): string => {
+  const { textX, textY, fontSize, textScale, textWidth, outlined } = layout
+  const fill = button.fg === defaults.fg ? "#F2F2F2" : button.fg
+  if (!outlined) return labelSvg(button.text, textX, textWidth, fill, layout)
+
+  let transform = textX === PRESET_TEXT_X ? "" : ` transform="translate(${textX - PRESET_TEXT_X} 0)"`
+  if (fontSize !== defaults.fontSize) {
+    transform = ` transform="translate(${textX} ${textY}) scale(${svgNumber(textScale)}) translate(${-PRESET_TEXT_X} ${-PRESET_TEXT_Y})"`
   }
-  const fill = split ? "url(#split-background)" : bg
-  lines.push(
-    `<rect x="${inset}" y="${inset}" width="${svgNumber(width - button.borderWidth)}" height="${svgNumber(height - button.borderWidth)}" rx="${svgNumber(Math.max(0, button.radius - inset))}" fill="${fill}" stroke="${border}"${button.borderWidth === 1 ? "" : ` stroke-width="${button.borderWidth}"`}/>`,
-  )
+  return `<path d="${DEPLOY_PATH}" fill="${fill}"${transform}/>`
+}
+
+const renderIconPaths = (icon: Exclude<Icon, { kind: "none" | "text" }>, ink: string, simpleIcon?: IconGeometry) => {
+  if (icon.kind === "mastra") return MASTRA_PATHS.map((d) => `<path d="${d}" fill="${ink}"/>`)
+  const geometry = icon.kind === "simple" ? simpleIcon : icon.geometry
+  if (!geometry) throw new Error("Missing Simple Icons geometry.")
+  return [renderIcon(geometry, ink)]
+}
+
+const renderButtonIcon = (button: Button, layout: ButtonLayout, simpleIcon?: IconGeometry): string[] => {
+  const { icon, iconSize, iconColor } = button
+  if (icon.kind === "none") return []
+  const ink = iconColor === defaults.iconColor ? "#F2F2F2" : iconColor
+  if (icon.kind === "text") return [labelSvg(icon.label, ICON_TEXT_X, layout.iconTextWidth, ink, layout)]
+
+  const artwork = renderIconPaths(icon, ink, simpleIcon)
+  if (iconSize === defaults.iconSize) return artwork
+
+  const factor = iconSize / defaults.iconSize
+  const x = svgNumber(ICON_CENTER.x * (1 - factor))
+  const y = svgNumber(ICON_CENTER.y * (1 - factor))
+  return [`<g transform="translate(${x} ${y}) scale(${svgNumber(factor)})">`, ...artwork, "</g>"]
+}
+
+const renderDivider = (button: Button, { hasIcon, split, dividerX }: ButtonLayout): string[] => {
+  if (!hasIcon || split) return []
+  const stroke = button.divider === defaults.divider ? "#3A3A3A" : button.divider
+  return [`<line x1="${dividerX}" y1="5" x2="${dividerX}" y2="29" stroke="${stroke}" stroke-opacity="0.6"/>`]
+}
+
+export const renderButton = (button: Button, simpleIcon?: IconGeometry): string => {
+  const layout = buttonLayout(button)
+  const { paddingX, paddingY } = button
+  const lines = [renderSvgRoot(button, layout), ...renderBackground(button, layout)]
   const padded = paddingX !== 0 || paddingY !== 0
   if (padded) lines.push(`<g transform="translate(${paddingX} ${paddingY})">`)
-  if (hasIcon && !split) {
-    lines.push(`<line x1="${dividerX}" y1="5" x2="${dividerX}" y2="29" stroke="${divider}" stroke-opacity="0.6"/>`)
-  }
-  const resizeIcon = hasIcon && icon.kind !== "text" && button.iconSize !== defaults.iconSize
-  if (resizeIcon) {
-    const factor = button.iconSize / defaults.iconSize
-    const x = svgNumber(ICON_CENTER.x * (1 - factor))
-    const y = svgNumber(ICON_CENTER.y * (1 - factor))
-    lines.push(`<g transform="translate(${x} ${y}) scale(${svgNumber(factor)})">`)
-  }
-  if (icon.kind === "mastra") {
-    for (const d of MASTRA_PATHS) lines.push(`<path d="${d}" fill="${ink}"/>`)
-  } else if (icon.kind === "text") {
-    lines.push(labelSvg(icon.label, iconTextX, iconTextWidth, ink))
-  } else if (icon.kind === "simple") {
-    if (!simpleIcon) throw new Error("Missing Simple Icons geometry.")
-    lines.push(renderIcon(simpleIcon, ink))
-  } else if ("geometry" in icon) {
-    lines.push(renderIcon(icon.geometry, ink))
-  }
-  if (resizeIcon) lines.push("</g>")
-
-  if (outlined) {
-    let transform = textX === presetTextX ? "" : ` transform="translate(${textX - presetTextX} 0)"`
-    if (fontSize !== defaults.fontSize) {
-      transform = ` transform="translate(${textX} ${textY}) scale(${svgNumber(textScale)}) translate(${-presetTextX} ${-presetTextY})"`
-    }
-    lines.push(`<path d="${DEPLOY_PATH}" fill="${fg}"${transform}/>`)
-  } else {
-    lines.push(labelSvg(text, textX, textWidth, fg))
-  }
+  lines.push(...renderDivider(button, layout))
+  lines.push(...renderButtonIcon(button, layout, simpleIcon), renderButtonLabel(button, layout))
   if (padded) lines.push("</g>")
   lines.push("</svg>", "")
   return lines.join("\n")
@@ -262,34 +353,42 @@ function formatDecimal(value: number): string {
   return "0." + "0".repeat(Number(exponent) - 1) + mantissa.replace(".", "")
 }
 
-export function buttonUrl(origin: string, button: Button): URL | null {
+const appendButtonFields = (params: URLSearchParams, button: Button, fields: readonly (keyof typeof defaults)[]) => {
+  for (const field of fields) {
+    const value = button[field]
+    if (value !== defaults[field]) params.set(field, typeof value === "number" ? formatDecimal(value) : value)
+  }
+}
+
+const appendIconGeometry = (params: URLSearchParams, icon: Extract<Icon, { geometry: IconGeometry }>): boolean => {
+  const { geometry } = icon
+  if (icon.kind === "path") {
+    params.set("iconPath", geometry.root.children[0].attributes.d)
+    params.set("iconViewBox", geometry.viewBox.join(" "))
+    return true
+  }
+  const source = normalizedSvg(geometry)
+  if (byteLength(source) > MAX_URL_BYTES) return false
+  params.set("iconSvg", encodeIcon(source))
+  return true
+}
+
+const appendIconParams = (params: URLSearchParams, icon: Icon): boolean => {
+  if ("geometry" in icon) return appendIconGeometry(params, icon)
+  if (icon.kind === "text") params.set("iconText", icon.label)
+  if (icon.kind === "simple") params.set("icon", icon.slug)
+  if (icon.kind === "none") params.set("icon", "none")
+  return true
+}
+
+export const buttonUrl = (origin: string, button: Button): URL | null => {
   const url = new URL(BUTTON_PATH, origin)
-  for (const key of keys) {
-    if (key === "icon") {
-      if (button.icon.kind === "none") url.searchParams.set(key, "none")
-      if (button.icon.kind === "simple") url.searchParams.set(key, button.icon.slug)
-    }
-    if (key === "iconText" && button.icon.kind === "text") url.searchParams.set(key, button.icon.label)
-    if ("geometry" in button.icon) {
-      if (key === "iconPath" && button.icon.kind === "path") {
-        url.searchParams.set(key, button.icon.geometry.root.children[0].attributes.d)
-      }
-      if (key === "iconViewBox" && button.icon.kind === "path") {
-        url.searchParams.set(key, button.icon.geometry.viewBox.join(" "))
-      }
-      if (key === "iconSvg" && button.icon.kind === "svg") {
-        const source = normalizedSvg(button.icon.geometry)
-        if (byteLength(source) > MAX_URL_BYTES) return null
-        url.searchParams.set(key, encodeIcon(source))
-      }
-    }
-    if (key in defaults) {
-      const field = key as keyof typeof defaults
-      const value = button[field]
-      if (value !== defaults[field]) {
-        url.searchParams.set(key, typeof value === "number" ? formatDecimal(value) : value)
-      }
-    }
+  appendButtonFields(url.searchParams, button, buttonFields)
+  if (!appendIconParams(url.searchParams, button.icon)) return null
+  appendButtonFields(url.searchParams, button, scaleAndRevision)
+  if (button.fixedSize) {
+    url.searchParams.set("width", String(button.fixedSize.width))
+    url.searchParams.set("height", String(button.fixedSize.height))
   }
   return byteLength(url.href) <= MAX_URL_BYTES ? url : null
 }

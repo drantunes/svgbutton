@@ -16,7 +16,8 @@ Traditional badge services are great for showing language versions, quality scor
 2. Set your label and adjust the font size, padding, colors, border, and corner radius. The preview updates as you edit.
 3. Open the **Simple Icons** selector to search for a logo, or choose **Text** to put a second label on the left. To use your own icon, select **Import SVG** and upload a file, paste the SVG markup, or enter an HTTPS URL that allows cross-origin requests.
 4. Under **Appearance**, choose **Split** to give the icon and text separate backgrounds without a divider line.
-5. Add a **Destination URL** to make the Markdown button clickable.
+5. To set the SVG dimensions in pixels, check **Fixed Size** under **Button** and enter a width and height.
+6. Add a **Destination URL** to make the Markdown button clickable.
 
 ### Embed in Markdown
 

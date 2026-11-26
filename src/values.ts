@@ -5,6 +5,8 @@ export const MAX_PATH_LENGTH = 8192
 export const MAX_TEXT_LENGTH = 120
 export const BUTTON_PATH = "/v1/button.svg"
 export const ICON_CENTER = { x: 20.67745, y: 17 }
+export const fixedSizeRange = { min: 1, max: 32768 } as const
+export const MAX_FIXED_SIZE_PIXELS = 8_388_608
 export const decimalRanges = {
   fontSize: { min: 8, max: 24 },
   paddingX: { min: 0, max: 48 },
