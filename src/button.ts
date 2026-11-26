@@ -329,7 +329,7 @@ function formatDecimal(value: number): string {
   return "0." + "0".repeat(Number(exponent) - 1) + mantissa.replace(".", "")
 }
 
-export function buttonUrl(origin: string, button: Button): URL | null {
+export const buttonUrl = (origin: string, button: Button): URL | null => {
   const url = new URL(BUTTON_PATH, origin)
   for (const key of keys) {
     if (key === "icon") {
