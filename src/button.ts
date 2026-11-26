@@ -266,7 +266,7 @@ const renderBackground = (button: Button, { width, height, split, dividerX }: Bu
   ]
 }
 
-function labelSvg(label: string, x: number, width: number, fill: string, { fontSize, textY }: ButtonLayout): string {
+const labelSvg = (label: string, x: number, width: number, fill: string, { fontSize, textY }: ButtonLayout): string => {
   return `<text x="${x}" y="${textY}" fill="${fill}" font-family="system-ui, sans-serif" font-size="${fontSize}" font-weight="600" direction="ltr" unicode-bidi="plaintext" xml:space="preserve" textLength="${width}" lengthAdjust="spacingAndGlyphs">${escapeXml(label)}</text>`
 }
 
