@@ -238,7 +238,7 @@ const buttonLayout = (button: Button) => {
 
 type ButtonLayout = ReturnType<typeof buttonLayout>
 
-function renderSvgRoot({ fixedSize, scale }: Button, { width, height }: Dimensions): string {
+const renderSvgRoot = ({ fixedSize, scale }: Button, { width, height }: Dimensions): string => {
   const { width: outputWidth, height: outputHeight } = fixedSize ?? {
     width: svgNumber(width * scale),
     height: svgNumber(height * scale),
