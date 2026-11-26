@@ -207,7 +207,7 @@ const ICON_TEXT_X = 13
 const PRESET_TEXT_X = 48
 const PRESET_TEXT_Y = 22
 
-function buttonLayout(button: Button) {
+const buttonLayout = (button: Button) => {
   const { icon, text, fontSize, paddingX, paddingY } = button
   const hasIcon = icon.kind !== "none"
   const split = hasIcon && button.layout === "split"
