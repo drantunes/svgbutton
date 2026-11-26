@@ -112,6 +112,17 @@ test("the API limits the raster area of fixed dimensions", async () => {
   assert.match(await oversized.text(), /width × height must be at most 8,388,608 pixels/)
 })
 
+test("the API accepts the inclusive bounds for each fixed dimension", async () => {
+  for (const [width, height] of [
+    ["1", "32768"],
+    ["32768", "1"],
+  ]) {
+    const response = await server.fetch(path({ width, height }))
+    assert.equal(response.status, 200)
+    assert.ok((await response.text()).startsWith(`<svg width="${width}" height="${height}"`))
+  }
+})
+
 test("the API renders an encoded left label in split layout", async () => {
   const button = parseButton(new URLSearchParams({ text: "PASSED", iconText: "Build & test", layout: "split" }))
   const url = buttonUrl("https://button.example", button)!
@@ -134,6 +145,10 @@ test("the Worker revalidates API inputs and sends no-store on errors", async () 
     { scale: "0.25" },
     { width: "240" },
     { height: "74" },
+    { width: "", height: "74" },
+    { width: "240", height: "" },
+    { width: "32769", height: "1" },
+    { width: "1", height: "32769" },
     { width: "100%", height: "74" },
     { width: "240", height: "0" },
     { fontSize: "25" },
