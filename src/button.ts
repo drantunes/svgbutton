@@ -253,16 +253,16 @@ function renderBackground(button: Button, { width, height, split, dividerX }: Bu
   const inset = button.borderWidth / 2
   const bg = button.bg === defaults.bg ? "black" : button.bg
   const border = button.border === defaults.border ? "#18181B" : button.border
-  const fill = split ? "url(#split-background)" : bg
   const strokeWidth = button.borderWidth === defaults.borderWidth ? "" : ` stroke-width="${button.borderWidth}"`
-  const rect = `<rect x="${inset}" y="${inset}" width="${svgNumber(width - button.borderWidth)}" height="${svgNumber(height - button.borderWidth)}" rx="${svgNumber(Math.max(0, button.radius - inset))}" fill="${fill}" stroke="${border}"${strokeWidth}/>`
-  if (!split) return [rect]
+  const rect = (fill: string) =>
+    `<rect x="${inset}" y="${inset}" width="${svgNumber(width - button.borderWidth)}" height="${svgNumber(height - button.borderWidth)}" rx="${svgNumber(Math.max(0, button.radius - inset))}" fill="${fill}" stroke="${border}"${strokeWidth}/>`
+  if (!split) return [rect(bg)]
 
   const boundary = svgNumber((dividerX + button.paddingX - inset) / (width - button.borderWidth))
   // Equal stop offsets create a hard edge inside the same rounded rectangle.
   return [
     `<defs><linearGradient id="split-background"><stop offset="${boundary}" stop-color="${button.iconBg}"/><stop offset="${boundary}" stop-color="${bg}"/></linearGradient></defs>`,
-    rect,
+    rect("url(#split-background)"),
   ]
 }
 
