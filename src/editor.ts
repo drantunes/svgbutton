@@ -126,7 +126,7 @@ function destination(value: string): string {
   throw new InputError("Destination URL: enter a complete HTTP or HTTPS address.")
 }
 
-function setSizeParams(params: URLSearchParams) {
+const setSizeParams = (params: URLSearchParams) => {
   if (fixedSize.checked) {
     params.set("width", fixedWidth.value)
     params.set("height", fixedHeight.value)
