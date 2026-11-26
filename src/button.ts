@@ -104,7 +104,7 @@ const readFixedSize = (params: URLSearchParams): Dimensions | undefined => {
   return { width, height }
 }
 
-export function parseButton(params: URLSearchParams): Button {
+export const parseButton = (params: URLSearchParams): Button => {
   const seen = new Set<string>()
   for (const key of params.keys()) {
     if (!known.has(key)) throw new InputError(`Unknown parameter: ${key}.`)
