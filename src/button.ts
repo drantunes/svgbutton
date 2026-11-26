@@ -282,7 +282,7 @@ const renderButtonLabel = (button: Button, layout: ButtonLayout): string => {
   return `<path d="${DEPLOY_PATH}" fill="${fill}"${transform}/>`
 }
 
-function renderButtonIcon(button: Button, layout: ButtonLayout, simpleIcon?: IconGeometry): string[] {
+const renderButtonIcon = (button: Button, layout: ButtonLayout, simpleIcon?: IconGeometry): string[] => {
   const { icon, iconSize, iconColor } = button
   if (icon.kind === "none") return []
   const ink = iconColor === defaults.iconColor ? "#F2F2F2" : iconColor
