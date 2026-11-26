@@ -207,15 +207,22 @@ const ICON_TEXT_X = 13
 const PRESET_TEXT_X = 48
 const PRESET_TEXT_Y = 22
 
+const labelPlacement = (icon: Icon, textScale: number) => {
+  if (icon.kind === "text") {
+    const iconTextWidth = svgNumber(measureLabel(icon.label) * textScale)
+    const dividerX = ICON_TEXT_X + Math.ceil(iconTextWidth) + 10
+    return { iconTextWidth, dividerX, textX: dividerX + 10 }
+  }
+  return { iconTextWidth: 0, dividerX: 38.5, textX: icon.kind === "none" ? 13 : PRESET_TEXT_X }
+}
+
 const buttonLayout = (button: Button) => {
   const { icon, text, fontSize, paddingX, paddingY } = button
   const hasIcon = icon.kind !== "none"
   const split = hasIcon && button.layout === "split"
   const textScale = fontSize / defaults.fontSize
-  const iconTextWidth = icon.kind === "text" ? svgNumber(measureLabel(icon.label) * textScale) : 0
-  const dividerX = icon.kind === "text" ? ICON_TEXT_X + Math.ceil(iconTextWidth) + 10 : 38.5
+  const { iconTextWidth, dividerX, textX } = labelPlacement(icon, textScale)
   const outlined = text === defaults.text
-  const textX = icon.kind === "text" ? dividerX + 10 : hasIcon ? PRESET_TEXT_X : 13
   const textY = svgNumber(PRESET_TEXT_Y + (fontSize - defaults.fontSize) / 3)
   const textWidth = svgNumber((outlined ? 50 : measureLabel(text)) * textScale)
   const width = svgNumber(textX + Math.ceil(textWidth) + (hasIcon ? 12 : 13) + 2 * paddingX)
