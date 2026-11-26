@@ -19,11 +19,11 @@ const backgroundLabel = document.querySelector<HTMLElement>("#background-label")
 const iconBackgroundLabel = document.querySelector<HTMLElement>("#icon-background-label")!
 const iconBackgroundField = document.querySelector<HTMLElement>("#icon-background-field")!
 const dividerField = document.querySelector<HTMLElement>("#divider-field")!
-const fixedSizeFields = document.querySelector<HTMLFieldSetElement>("#fixed-size-fields")!
-const fixedSize = form.elements.namedItem("fixedSize") as HTMLInputElement
-const fixedWidth = form.elements.namedItem("width") as HTMLInputElement
-const fixedHeight = form.elements.namedItem("height") as HTMLInputElement
-const scale = form.elements.namedItem("scale") as HTMLInputElement
+const fixedSizeFields = requireSizingControl("#fixed-size-fields", HTMLFieldSetElement)
+const fixedSize = requireSizingControl('input[name="fixedSize"]', HTMLInputElement)
+const fixedWidth = requireSizingControl('input[name="width"]', HTMLInputElement)
+const fixedHeight = requireSizingControl('input[name="height"]', HTMLInputElement)
+const scale = requireSizingControl('input[name="scale"]', HTMLInputElement)
 const dimensions = document.querySelector<HTMLElement>("#dimensions")!
 const renderStatus = document.querySelector<HTMLElement>("#render-status")!
 const actionStatus = document.querySelector<HTMLElement>("#action-status")!
@@ -62,6 +62,12 @@ let copyTimer: number | undefined
 let previewUrl = ""
 let importedIcon = ""
 let importAttempt = 0
+
+function requireSizingControl<T extends HTMLElement>(selector: string, elementType: new () => T): T {
+  const element = form.querySelector(selector)
+  if (!(element instanceof elementType)) throw new Error(`Missing sizing control ${selector}.`)
+  return element
+}
 
 function field(name: string): string {
   return (form.elements.namedItem(name) as HTMLInputElement | HTMLSelectElement).value
