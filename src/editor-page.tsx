@@ -30,7 +30,7 @@ function ColorField({ name, label, labelId = `${name}-color-label`, fieldId, hid
   )
 }
 
-function EditorPage() {
+const EditorPage = () => {
   return (
     <html lang="en">
       <head>
