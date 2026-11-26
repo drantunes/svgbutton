@@ -342,8 +342,9 @@ form.addEventListener("submit", (event) => event.preventDefault())
 output.addEventListener("scroll", syncOutputScroll)
 fixedSize.addEventListener("input", () => {
   if (!fixedSize.checked) return
-  fixedWidth.value ||= String(preview.naturalWidth || 200)
-  fixedHeight.value ||= String(preview.naturalHeight || 34)
+  const [width, height] = preview.naturalWidth ? [preview.naturalWidth, preview.naturalHeight] : [200, 34]
+  fixedWidth.value ||= String(width)
+  fixedHeight.value ||= String(height)
 })
 form.addEventListener("input", (event) => {
   const target = event.target as HTMLInputElement
