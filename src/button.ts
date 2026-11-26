@@ -87,7 +87,7 @@ function readLabel(value: string, field: string): string {
   return text
 }
 
-function readFixedSize(params: URLSearchParams): Dimensions | undefined {
+const readFixedSize = (params: URLSearchParams): Dimensions | undefined => {
   const rawWidth = params.get("width")
   const rawHeight = params.get("height")
   if (rawWidth === null && rawHeight === null) return undefined
