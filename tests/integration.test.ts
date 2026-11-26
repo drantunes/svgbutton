@@ -103,6 +103,15 @@ test("fixed dimensions override scale while preserving the viewBox", async () =>
   assert.match(svg, /^<svg width="240\.5" height="74" viewBox="0 0 110 34"/)
 })
 
+test("the API limits the raster area of fixed dimensions", async () => {
+  const boundary = await server.fetch(path({ width: "32768", height: "256" }))
+  assert.equal(boundary.status, 200)
+
+  const oversized = await server.fetch(path({ width: "32768", height: "256.01" }))
+  assert.equal(oversized.status, 400)
+  assert.match(await oversized.text(), /width × height must be at most 8,388,608 pixels/)
+})
+
 test("the API renders an encoded left label in split layout", async () => {
   const button = parseButton(new URLSearchParams({ text: "PASSED", iconText: "Build & test", layout: "split" }))
   const url = buttonUrl("https://button.example", button)!

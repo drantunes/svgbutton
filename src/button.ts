@@ -16,6 +16,7 @@ import {
   ICON_CENTER,
   InputError,
   isSimpleIconSlug,
+  MAX_FIXED_SIZE_PIXELS,
   MAX_TEXT_LENGTH,
   MAX_URL_BYTES,
   SVG_NS,
@@ -86,6 +87,23 @@ function readLabel(value: string, field: string): string {
   return text
 }
 
+function readFixedSize(params: URLSearchParams): Dimensions | undefined {
+  const rawWidth = params.get("width")
+  const rawHeight = params.get("height")
+  if (rawWidth === null && rawHeight === null) return
+  if (rawWidth === null || rawHeight === null) throw new InputError("Provide width and height together.")
+
+  const { min, max } = fixedSizeRange
+  const width = decimal(rawWidth, "Width", min, max)
+  const height = decimal(rawHeight, "Height", min, max)
+  if (Math.ceil(width) * Math.ceil(height) > MAX_FIXED_SIZE_PIXELS) {
+    throw new InputError(
+      `Fixed Size: width × height must be at most ${MAX_FIXED_SIZE_PIXELS.toLocaleString("en-US")} pixels (rounded up on each axis).`,
+    )
+  }
+  return { width, height }
+}
+
 export function parseButton(params: URLSearchParams): Button {
   const seen = new Set<string>()
   for (const key of params.keys()) {
@@ -103,16 +121,7 @@ export function parseButton(params: URLSearchParams): Button {
   if (layout !== "standard" && layout !== "split") {
     throw new InputError('layout: use "standard" or "split".')
   }
-  const width = params.get("width")
-  const height = params.get("height")
-  if ((width === null) !== (height === null)) {
-    throw new InputError("Provide width and height together.")
-  }
-  const { min, max } = fixedSizeRange
-  const fixedSize =
-    width !== null && height !== null
-      ? { width: decimal(width, "Width", min, max), height: decimal(height, "Height", min, max) }
-      : undefined
+  const fixedSize = readFixedSize(params)
 
   const name = params.get("icon")
   const iconText = params.get("iconText")
