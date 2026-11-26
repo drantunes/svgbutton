@@ -19,6 +19,11 @@ const backgroundLabel = document.querySelector<HTMLElement>("#background-label")
 const iconBackgroundLabel = document.querySelector<HTMLElement>("#icon-background-label")!
 const iconBackgroundField = document.querySelector<HTMLElement>("#icon-background-field")!
 const dividerField = document.querySelector<HTMLElement>("#divider-field")!
+const fixedSizeFields = document.querySelector<HTMLFieldSetElement>("#fixed-size-fields")!
+const fixedSize = form.elements.namedItem("fixedSize") as HTMLInputElement
+const fixedWidth = form.elements.namedItem("width") as HTMLInputElement
+const fixedHeight = form.elements.namedItem("height") as HTMLInputElement
+const scale = form.elements.namedItem("scale") as HTMLInputElement
 const dimensions = document.querySelector<HTMLElement>("#dimensions")!
 const renderStatus = document.querySelector<HTMLElement>("#render-status")!
 const actionStatus = document.querySelector<HTMLElement>("#action-status")!
@@ -42,7 +47,6 @@ const fields = [
   "borderWidth",
   "radius",
   "iconColor",
-  "scale",
   "rev",
 ]
 const outputLabels = { image: "Image URL", markdown: "Markdown", svg: "SVG" }
@@ -130,6 +134,8 @@ function render() {
   iconSizeField.hidden = hasLeftLabel
   pathFields.hidden = source !== "path"
   svgFields.hidden = source !== "svg"
+  fixedSizeFields.hidden = fixedSizeFields.disabled = !fixedSize.checked
+  scale.disabled = fixedSize.checked
   simpleIcons.show(source === "simple-icons")
   setStatus(actionStatus, "")
   setStatus(renderStatus, "")
@@ -143,6 +149,12 @@ function render() {
     const selectedIcon = source === "simple-icons" ? simpleIcons.value : undefined
     const params = new URLSearchParams()
     for (const name of fields) params.set(name, field(name))
+    if (fixedSize.checked) {
+      params.set("width", fixedWidth.value)
+      params.set("height", fixedHeight.value)
+    } else {
+      params.set("scale", scale.value)
+    }
     if (!hasLeftLabel) params.set("iconSize", field("iconSize"))
     if (!iconBackgroundField.hidden) params.set("iconBg", field("iconBg"))
     if (!dividerField.hidden) params.set("divider", field("divider"))
@@ -320,6 +332,10 @@ form.addEventListener("submit", (event) => event.preventDefault())
 output.addEventListener("scroll", syncOutputScroll)
 form.addEventListener("input", (event) => {
   const target = event.target as HTMLInputElement
+  if (target === fixedSize && fixedSize.checked) {
+    fixedWidth.value ||= String(preview.naturalWidth || 200)
+    fixedHeight.value ||= String(preview.naturalHeight || 34)
+  }
   if (target.name && !target.name.startsWith("import")) render()
 })
 preview.addEventListener("load", () => {
