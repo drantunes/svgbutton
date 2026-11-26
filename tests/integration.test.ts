@@ -67,6 +67,7 @@ test("GET renders a scaled split button with a Unicode label and a Base64URL ico
   assert.equal(url.searchParams.get("iconBg"), "#aabbcc")
   const response = await server.fetch(url.href)
   assert.equal(response.status, 200)
+  assert.equal(response.headers.get("content-security-policy"), "default-src 'none'; sandbox")
   const svg = await response.text()
   assert.equal(svg, renderButton(button))
   assert.match(svg, /height="84"/)
@@ -98,9 +99,26 @@ test("fixed dimensions override scale while preserving the viewBox", async () =>
 
   const response = await server.fetch(url.href)
   assert.equal(response.status, 200)
+  assert.equal(
+    response.headers.get("content-security-policy"),
+    "default-src 'none'; sandbox; style-src-attr 'unsafe-inline'",
+  )
   const svg = await response.text()
   assert.equal(svg, renderButton(button))
   assert.match(svg, /^<svg width="240\.5" height="74" viewBox="0 0 110 34"/)
+  const style = svg.match(/^<svg [^>]* style="([^"]*)"/)?.[1]
+  assert.ok(style)
+  assert.deepEqual(
+    new Set(style.split(";")),
+    new Set([
+      "width:240.5px!important",
+      "min-width:240.5px!important",
+      "max-width:240.5px!important",
+      "height:74px!important",
+      "min-height:74px!important",
+      "max-height:74px!important",
+    ]),
+  )
 })
 
 test("the API limits the raster area of fixed dimensions", async () => {
