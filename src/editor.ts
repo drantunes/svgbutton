@@ -135,15 +135,17 @@ const setSizeParams = (params: URLSearchParams) => {
   }
 }
 
-const render = () => {
-  const source = field("source")
-  const split = field("layout") === "split"
-  const hasIcon = source !== "none"
-  const hasLeftLabel = source === "text"
-  backgroundLabel.textContent = split && hasIcon ? "Text background" : "Background"
-  iconBackgroundLabel.textContent = hasLeftLabel ? "Left label background" : "Icon background"
-  iconBackgroundField.hidden = !split || !hasIcon
+const syncBackgroundFields = (hasIcon: boolean, split: boolean) => {
+  const splitBackground = split && hasIcon
+  backgroundLabel.textContent = splitBackground ? "Text background" : "Background"
+  iconBackgroundField.hidden = !splitBackground
   dividerField.hidden = split || !hasIcon
+}
+
+const syncEditorFields = (source: string) => {
+  const hasLeftLabel = source === "text"
+  syncBackgroundFields(source !== "none", field("layout") === "split")
+  iconBackgroundLabel.textContent = hasLeftLabel ? "Left label background" : "Icon background"
   iconTextField.hidden = !hasLeftLabel
   iconColorLabel.textContent = hasLeftLabel ? "Left label color" : "Icon color"
   iconSizeField.hidden = hasLeftLabel
@@ -152,6 +154,68 @@ const render = () => {
   fixedSizeFields.hidden = fixedSizeFields.disabled = !fixedSize.checked
   scale.disabled = fixedSize.checked
   simpleIcons.show(source === "simple-icons")
+}
+
+type SelectedIcon = typeof simpleIcons.value
+
+const setLoadedIconParams = (params: URLSearchParams, source: string, selectedIcon: SelectedIcon) => {
+  if (source === "svg") {
+    if (!importedIcon) throw new InputError("Import an SVG from a URL, a file, or pasted markup.")
+    params.set("iconSvg", importedIcon)
+  } else if (source === "simple-icons") {
+    if (!selectedIcon) throw new InputError("Choose a brand from Simple Icons.")
+    params.set("icon", selectedIcon.slug)
+  } else {
+    params.set("icon", source)
+  }
+}
+
+const setIconParams = (params: URLSearchParams, source: string, selectedIcon: SelectedIcon) => {
+  if (source === "path") {
+    params.set("iconPath", field("iconPath"))
+    params.set("iconViewBox", field("iconViewBox"))
+  } else if (source === "text") {
+    params.set("iconText", field("iconText"))
+  } else {
+    setLoadedIconParams(params, source, selectedIcon)
+  }
+}
+
+const editorParams = (source: string, selectedIcon: SelectedIcon) => {
+  const params = new URLSearchParams()
+  for (const name of fields) params.set(name, field(name))
+  setSizeParams(params)
+  if (source !== "text") params.set("iconSize", field("iconSize"))
+  if (!iconBackgroundField.hidden) params.set("iconBg", field("iconBg"))
+  if (!dividerField.hidden) params.set("divider", field("divider"))
+  setIconParams(params, source, selectedIcon)
+  return params
+}
+
+const renderOutput = (params: URLSearchParams, selectedIcon: SelectedIcon) => {
+  const button = parseButton(params)
+  const svg = renderButton(button, selectedIcon?.geometry)
+  const url = buttonUrl(location.origin, button)
+  const label = button.icon.kind === "text" ? `${button.icon.label} · ${button.text}` : button.text
+  outputValues.svg = svg
+  if (previewUrl) URL.revokeObjectURL(previewUrl)
+  previewUrl = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }))
+  preview.src = previewUrl
+  preview.alt = label
+  preview.hidden = false
+  download.disabled = false
+
+  if (!url) {
+    setStatus(renderStatus, "The URL exceeds 8192 bytes. Use the SVG tab or download the file.")
+    return
+  }
+  outputValues.image = url.href
+  outputValues.markdown = markdown(label, url.href, destination(field("destination")))
+}
+
+const render = () => {
+  const source = field("source")
+  syncEditorFields(source)
   setStatus(actionStatus, "")
   setStatus(renderStatus, "")
   outputValues = { image: "", markdown: "", svg: "" }
@@ -162,45 +226,7 @@ const render = () => {
   try {
     if (source === "simple-icons" && simpleIcons.pending) return
     const selectedIcon = source === "simple-icons" ? simpleIcons.value : undefined
-    const params = new URLSearchParams()
-    for (const name of fields) params.set(name, field(name))
-    setSizeParams(params)
-    if (!hasLeftLabel) params.set("iconSize", field("iconSize"))
-    if (!iconBackgroundField.hidden) params.set("iconBg", field("iconBg"))
-    if (!dividerField.hidden) params.set("divider", field("divider"))
-    if (source === "path") {
-      params.set("iconPath", field("iconPath"))
-      params.set("iconViewBox", field("iconViewBox"))
-    } else if (source === "svg") {
-      if (!importedIcon) throw new InputError("Import an SVG from a URL, a file, or pasted markup.")
-      params.set("iconSvg", importedIcon)
-    } else if (hasLeftLabel) {
-      params.set("iconText", field("iconText"))
-    } else if (source === "simple-icons") {
-      if (!selectedIcon) throw new InputError("Choose a brand from Simple Icons.")
-      params.set("icon", selectedIcon.slug)
-    } else {
-      params.set("icon", source)
-    }
-
-    const button = parseButton(params)
-    const svg = renderButton(button, selectedIcon?.geometry)
-    const url = buttonUrl(location.origin, button)
-    const label = button.icon.kind === "text" ? `${button.icon.label} · ${button.text}` : button.text
-    outputValues.svg = svg
-    if (previewUrl) URL.revokeObjectURL(previewUrl)
-    previewUrl = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }))
-    preview.src = previewUrl
-    preview.alt = label
-    preview.hidden = false
-    download.disabled = false
-
-    if (!url) {
-      setStatus(renderStatus, "The URL exceeds 8192 bytes. Use the SVG tab or download the file.")
-      return
-    }
-    outputValues.image = url.href
-    outputValues.markdown = markdown(label, url.href, destination(field("destination")))
+    renderOutput(editorParams(source, selectedIcon), selectedIcon)
   } catch (error) {
     setStatus(renderStatus, message(error), true)
   } finally {
