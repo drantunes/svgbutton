@@ -49,10 +49,13 @@ const keys = [
 const known = new Set<string>(keys)
 
 type Icon =
-  | { kind: "mastra" | "none" }
+  | { kind: "mastra" }
+  | { kind: "none" }
   | { kind: "text"; label: string }
   | { kind: "path" | "svg"; geometry: IconGeometry }
   | { kind: "simple"; slug: string }
+
+type Dimensions = { width: number; height: number }
 
 type Button = {
   text: string
@@ -72,7 +75,7 @@ type Button = {
   icon: Icon
   scale: number
   rev: string
-  fixedSize?: { width: number; height: number }
+  fixedSize?: Dimensions
 }
 
 function readLabel(value: string, field: string): string {
@@ -191,85 +194,120 @@ function svgNumber(value: number): number {
   return Number(value.toFixed(8))
 }
 
-export function renderButton(button: Button, simpleIcon?: IconGeometry): string {
-  const { icon, text, fontSize, paddingX, paddingY, scale, fixedSize } = button
+const ICON_TEXT_X = 13
+const PRESET_TEXT_X = 48
+const PRESET_TEXT_Y = 22
+
+function buttonLayout(button: Button) {
+  const { icon, text, fontSize, paddingX, paddingY } = button
   const hasIcon = icon.kind !== "none"
   const split = hasIcon && button.layout === "split"
   const textScale = fontSize / defaults.fontSize
-  const iconTextX = 13
   const iconTextWidth = icon.kind === "text" ? svgNumber(measureLabel(icon.label) * textScale) : 0
-  const dividerX = icon.kind === "text" ? iconTextX + Math.ceil(iconTextWidth) + 10 : 38.5
+  const dividerX = icon.kind === "text" ? ICON_TEXT_X + Math.ceil(iconTextWidth) + 10 : 38.5
   const outlined = text === defaults.text
-  const presetTextX = 48
-  const presetTextY = 22
-  const textX = icon.kind === "text" ? dividerX + 10 : hasIcon ? presetTextX : 13
-  const textY = svgNumber(presetTextY + (fontSize - defaults.fontSize) / 3)
+  const textX = icon.kind === "text" ? dividerX + 10 : hasIcon ? PRESET_TEXT_X : 13
+  const textY = svgNumber(PRESET_TEXT_Y + (fontSize - defaults.fontSize) / 3)
   const textWidth = svgNumber((outlined ? 50 : measureLabel(text)) * textScale)
   const width = svgNumber(textX + Math.ceil(textWidth) + (hasIcon ? 12 : 13) + 2 * paddingX)
   const height = svgNumber(34 + 2 * paddingY)
-  const inset = button.borderWidth / 2
-  const bg = button.bg === defaults.bg ? "black" : button.bg
-  const border = button.border === defaults.border ? "#18181B" : button.border
-  const divider = button.divider === defaults.divider ? "#3A3A3A" : button.divider
-  const fg = button.fg === defaults.fg ? "#F2F2F2" : button.fg
-  const ink = button.iconColor === defaults.iconColor ? "#F2F2F2" : button.iconColor
-
-  function labelSvg(label: string, x: number, width: number, fill: string): string {
-    return `<text x="${x}" y="${textY}" fill="${fill}" font-family="system-ui, sans-serif" font-size="${fontSize}" font-weight="600" direction="ltr" unicode-bidi="plaintext" xml:space="preserve" textLength="${width}" lengthAdjust="spacingAndGlyphs">${escapeXml(label)}</text>`
+  return {
+    hasIcon,
+    split,
+    fontSize,
+    textScale,
+    iconTextWidth,
+    dividerX,
+    outlined,
+    textX,
+    textY,
+    textWidth,
+    width,
+    height,
   }
+}
 
-  const outputWidth = fixedSize?.width ?? svgNumber(width * scale)
-  const outputHeight = fixedSize?.height ?? svgNumber(height * scale)
+type ButtonLayout = ReturnType<typeof buttonLayout>
+
+function renderSvgRoot({ fixedSize, scale }: Button, { width, height }: Dimensions): string {
+  const { width: outputWidth, height: outputHeight } = fixedSize ?? {
+    width: svgNumber(width * scale),
+    height: svgNumber(height * scale),
+  }
   const fixedStyle = fixedSize
     ? ` style="width:${outputWidth}px!important;min-width:${outputWidth}px!important;max-width:${outputWidth}px!important;height:${outputHeight}px!important;min-height:${outputHeight}px!important;max-height:${outputHeight}px!important"`
     : ""
-  const lines = [
-    `<svg width="${outputWidth}" height="${outputHeight}" viewBox="0 0 ${width} ${height}" fill="none" xmlns="${SVG_NS}"${fixedStyle}>`,
-  ]
-  if (split) {
-    const boundary = svgNumber((dividerX + paddingX - inset) / (width - button.borderWidth))
-    // Equal stop offsets create a hard edge inside the same rounded rectangle.
-    lines.push(
-      `<defs><linearGradient id="split-background"><stop offset="${boundary}" stop-color="${button.iconBg}"/><stop offset="${boundary}" stop-color="${bg}"/></linearGradient></defs>`,
-    )
-  }
+  return `<svg width="${outputWidth}" height="${outputHeight}" viewBox="0 0 ${width} ${height}" fill="none" xmlns="${SVG_NS}"${fixedStyle}>`
+}
+
+function renderBackground(button: Button, { width, height, split, dividerX }: ButtonLayout): string[] {
+  const inset = button.borderWidth / 2
+  const bg = button.bg === defaults.bg ? "black" : button.bg
+  const border = button.border === defaults.border ? "#18181B" : button.border
   const fill = split ? "url(#split-background)" : bg
-  lines.push(
-    `<rect x="${inset}" y="${inset}" width="${svgNumber(width - button.borderWidth)}" height="${svgNumber(height - button.borderWidth)}" rx="${svgNumber(Math.max(0, button.radius - inset))}" fill="${fill}" stroke="${border}"${button.borderWidth === 1 ? "" : ` stroke-width="${button.borderWidth}"`}/>`,
-  )
+  const strokeWidth = button.borderWidth === defaults.borderWidth ? "" : ` stroke-width="${button.borderWidth}"`
+  const rect = `<rect x="${inset}" y="${inset}" width="${svgNumber(width - button.borderWidth)}" height="${svgNumber(height - button.borderWidth)}" rx="${svgNumber(Math.max(0, button.radius - inset))}" fill="${fill}" stroke="${border}"${strokeWidth}/>`
+  if (!split) return [rect]
+
+  const boundary = svgNumber((dividerX + button.paddingX - inset) / (width - button.borderWidth))
+  // Equal stop offsets create a hard edge inside the same rounded rectangle.
+  return [
+    `<defs><linearGradient id="split-background"><stop offset="${boundary}" stop-color="${button.iconBg}"/><stop offset="${boundary}" stop-color="${bg}"/></linearGradient></defs>`,
+    rect,
+  ]
+}
+
+function labelSvg(label: string, x: number, width: number, fill: string, { fontSize, textY }: ButtonLayout): string {
+  return `<text x="${x}" y="${textY}" fill="${fill}" font-family="system-ui, sans-serif" font-size="${fontSize}" font-weight="600" direction="ltr" unicode-bidi="plaintext" xml:space="preserve" textLength="${width}" lengthAdjust="spacingAndGlyphs">${escapeXml(label)}</text>`
+}
+
+function renderButtonLabel(button: Button, layout: ButtonLayout): string {
+  const { textX, textY, fontSize, textScale, textWidth, outlined } = layout
+  const fill = button.fg === defaults.fg ? "#F2F2F2" : button.fg
+  if (!outlined) return labelSvg(button.text, textX, textWidth, fill, layout)
+
+  let transform = textX === PRESET_TEXT_X ? "" : ` transform="translate(${textX - PRESET_TEXT_X} 0)"`
+  if (fontSize !== defaults.fontSize) {
+    transform = ` transform="translate(${textX} ${textY}) scale(${svgNumber(textScale)}) translate(${-PRESET_TEXT_X} ${-PRESET_TEXT_Y})"`
+  }
+  return `<path d="${DEPLOY_PATH}" fill="${fill}"${transform}/>`
+}
+
+function renderButtonIcon(button: Button, layout: ButtonLayout, simpleIcon?: IconGeometry): string[] {
+  const { icon, iconSize, iconColor } = button
+  if (icon.kind === "none") return []
+  const ink = iconColor === defaults.iconColor ? "#F2F2F2" : iconColor
+  if (icon.kind === "text") return [labelSvg(icon.label, ICON_TEXT_X, layout.iconTextWidth, ink, layout)]
+
+  let artwork: string[]
+  if (icon.kind === "mastra") {
+    artwork = MASTRA_PATHS.map((d) => `<path d="${d}" fill="${ink}"/>`)
+  } else {
+    const geometry = icon.kind === "simple" ? simpleIcon : icon.geometry
+    if (!geometry) throw new Error("Missing Simple Icons geometry.")
+    artwork = [renderIcon(geometry, ink)]
+  }
+  if (iconSize === defaults.iconSize) return artwork
+
+  const factor = iconSize / defaults.iconSize
+  const x = svgNumber(ICON_CENTER.x * (1 - factor))
+  const y = svgNumber(ICON_CENTER.y * (1 - factor))
+  return [`<g transform="translate(${x} ${y}) scale(${svgNumber(factor)})">`, ...artwork, "</g>"]
+}
+
+export function renderButton(button: Button, simpleIcon?: IconGeometry): string {
+  const layout = buttonLayout(button)
+  const { paddingX, paddingY } = button
+  const lines = [renderSvgRoot(button, layout), ...renderBackground(button, layout)]
   const padded = paddingX !== 0 || paddingY !== 0
   if (padded) lines.push(`<g transform="translate(${paddingX} ${paddingY})">`)
-  if (hasIcon && !split) {
-    lines.push(`<line x1="${dividerX}" y1="5" x2="${dividerX}" y2="29" stroke="${divider}" stroke-opacity="0.6"/>`)
+  if (layout.hasIcon && !layout.split) {
+    const divider = button.divider === defaults.divider ? "#3A3A3A" : button.divider
+    lines.push(
+      `<line x1="${layout.dividerX}" y1="5" x2="${layout.dividerX}" y2="29" stroke="${divider}" stroke-opacity="0.6"/>`,
+    )
   }
-  const resizeIcon = hasIcon && icon.kind !== "text" && button.iconSize !== defaults.iconSize
-  if (resizeIcon) {
-    const factor = button.iconSize / defaults.iconSize
-    const x = svgNumber(ICON_CENTER.x * (1 - factor))
-    const y = svgNumber(ICON_CENTER.y * (1 - factor))
-    lines.push(`<g transform="translate(${x} ${y}) scale(${svgNumber(factor)})">`)
-  }
-  if (icon.kind === "mastra") {
-    for (const d of MASTRA_PATHS) lines.push(`<path d="${d}" fill="${ink}"/>`)
-  } else if (icon.kind === "text") {
-    lines.push(labelSvg(icon.label, iconTextX, iconTextWidth, ink))
-  } else if (icon.kind === "simple") {
-    if (!simpleIcon) throw new Error("Missing Simple Icons geometry.")
-    lines.push(renderIcon(simpleIcon, ink))
-  } else if ("geometry" in icon) {
-    lines.push(renderIcon(icon.geometry, ink))
-  }
-  if (resizeIcon) lines.push("</g>")
-
-  if (outlined) {
-    let transform = textX === presetTextX ? "" : ` transform="translate(${textX - presetTextX} 0)"`
-    if (fontSize !== defaults.fontSize) {
-      transform = ` transform="translate(${textX} ${textY}) scale(${svgNumber(textScale)}) translate(${-presetTextX} ${-presetTextY})"`
-    }
-    lines.push(`<path d="${DEPLOY_PATH}" fill="${fg}"${transform}/>`)
-  } else {
-    lines.push(labelSvg(text, textX, textWidth, fg))
-  }
+  lines.push(...renderButtonIcon(button, layout, simpleIcon), renderButtonLabel(button, layout))
   if (padded) lines.push("</g>")
   lines.push("</svg>", "")
   return lines.join("\n")
