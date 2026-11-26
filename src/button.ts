@@ -289,20 +289,20 @@ const renderButtonLabel = (button: Button, layout: ButtonLayout): string => {
   return `<path d="${DEPLOY_PATH}" fill="${fill}"${transform}/>`
 }
 
+const renderIconPaths = (icon: Exclude<Icon, { kind: "none" | "text" }>, ink: string, simpleIcon?: IconGeometry) => {
+  if (icon.kind === "mastra") return MASTRA_PATHS.map((d) => `<path d="${d}" fill="${ink}"/>`)
+  const geometry = icon.kind === "simple" ? simpleIcon : icon.geometry
+  if (!geometry) throw new Error("Missing Simple Icons geometry.")
+  return [renderIcon(geometry, ink)]
+}
+
 const renderButtonIcon = (button: Button, layout: ButtonLayout, simpleIcon?: IconGeometry): string[] => {
   const { icon, iconSize, iconColor } = button
   if (icon.kind === "none") return []
   const ink = iconColor === defaults.iconColor ? "#F2F2F2" : iconColor
   if (icon.kind === "text") return [labelSvg(icon.label, ICON_TEXT_X, layout.iconTextWidth, ink, layout)]
 
-  let artwork: string[]
-  if (icon.kind === "mastra") {
-    artwork = MASTRA_PATHS.map((d) => `<path d="${d}" fill="${ink}"/>`)
-  } else {
-    const geometry = icon.kind === "simple" ? simpleIcon : icon.geometry
-    if (!geometry) throw new Error("Missing Simple Icons geometry.")
-    artwork = [renderIcon(geometry, ink)]
-  }
+  const artwork = renderIconPaths(icon, ink, simpleIcon)
   if (iconSize === defaults.iconSize) return artwork
 
   const factor = iconSize / defaults.iconSize
