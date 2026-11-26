@@ -12,6 +12,7 @@ import {
   defaults,
   encodeIcon,
   escapeXml,
+  fixedSizeRange,
   ICON_CENTER,
   InputError,
   isSimpleIconSlug,
@@ -42,6 +43,8 @@ const keys = [
   "iconSvg",
   "scale",
   "rev",
+  "width",
+  "height",
 ] as const
 const known = new Set<string>(keys)
 
@@ -69,6 +72,7 @@ type Button = {
   icon: Icon
   scale: number
   rev: string
+  fixedSize?: { width: number; height: number }
 }
 
 function readLabel(value: string, field: string): string {
@@ -96,6 +100,16 @@ export function parseButton(params: URLSearchParams): Button {
   if (layout !== "standard" && layout !== "split") {
     throw new InputError('layout: use "standard" or "split".')
   }
+  const width = params.get("width")
+  const height = params.get("height")
+  if ((width === null) !== (height === null)) {
+    throw new InputError("Provide width and height together.")
+  }
+  const { min, max } = fixedSizeRange
+  const fixedSize =
+    width !== null && height !== null
+      ? { width: decimal(width, "Width", min, max), height: decimal(height, "Height", min, max) }
+      : undefined
 
   const name = params.get("icon")
   const iconText = params.get("iconText")
@@ -152,6 +166,7 @@ export function parseButton(params: URLSearchParams): Button {
     borderWidth: readDecimal("borderWidth"),
     radius: readDecimal("radius"),
     scale: readDecimal("scale"),
+    fixedSize,
   }
 }
 
@@ -177,7 +192,7 @@ function svgNumber(value: number): number {
 }
 
 export function renderButton(button: Button, simpleIcon?: IconGeometry): string {
-  const { icon, text, fontSize, paddingX, paddingY, scale } = button
+  const { icon, text, fontSize, paddingX, paddingY, scale, fixedSize } = button
   const hasIcon = icon.kind !== "none"
   const split = hasIcon && button.layout === "split"
   const textScale = fontSize / defaults.fontSize
@@ -203,8 +218,13 @@ export function renderButton(button: Button, simpleIcon?: IconGeometry): string 
     return `<text x="${x}" y="${textY}" fill="${fill}" font-family="system-ui, sans-serif" font-size="${fontSize}" font-weight="600" direction="ltr" unicode-bidi="plaintext" xml:space="preserve" textLength="${width}" lengthAdjust="spacingAndGlyphs">${escapeXml(label)}</text>`
   }
 
+  const outputWidth = fixedSize?.width ?? svgNumber(width * scale)
+  const outputHeight = fixedSize?.height ?? svgNumber(height * scale)
+  const fixedStyle = fixedSize
+    ? ` style="width:${outputWidth}px!important;min-width:${outputWidth}px!important;max-width:${outputWidth}px!important;height:${outputHeight}px!important;min-height:${outputHeight}px!important;max-height:${outputHeight}px!important"`
+    : ""
   const lines = [
-    `<svg width="${svgNumber(width * scale)}" height="${svgNumber(height * scale)}" viewBox="0 0 ${width} ${height}" fill="none" xmlns="${SVG_NS}">`,
+    `<svg width="${outputWidth}" height="${outputHeight}" viewBox="0 0 ${width} ${height}" fill="none" xmlns="${SVG_NS}"${fixedStyle}>`,
   ]
   if (split) {
     const boundary = svgNumber((dividerX + paddingX - inset) / (width - button.borderWidth))
@@ -290,6 +310,10 @@ export function buttonUrl(origin: string, button: Button): URL | null {
         url.searchParams.set(key, typeof value === "number" ? formatDecimal(value) : value)
       }
     }
+  }
+  if (button.fixedSize) {
+    url.searchParams.set("width", String(button.fixedSize.width))
+    url.searchParams.set("height", String(button.fixedSize.height))
   }
   return byteLength(url.href) <= MAX_URL_BYTES ? url : null
 }

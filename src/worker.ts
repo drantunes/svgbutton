@@ -60,7 +60,7 @@ app.get(BUTTON_PATH, async (c) => {
   return c.body(svg, 200, {
     "Content-Type": "image/svg+xml; charset=utf-8",
     "Cache-Control": "public, max-age=86400",
-    "Content-Security-Policy": svgPolicy,
+    "Content-Security-Policy": button.fixedSize ? `${svgPolicy}; style-src-attr 'unsafe-inline'` : svgPolicy,
   })
 })
 

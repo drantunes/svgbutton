@@ -165,6 +165,22 @@ textarea {
   padding: 0.54rem 0.62rem;
   font-weight: 400;
 }
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.checkbox input {
+  width: auto;
+  margin: 0;
+  accent-color: var(--accent);
+}
+#fixed-size-fields {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
 button,
 .repository-link {
   padding: 0.58rem 0.72rem;
