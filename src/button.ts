@@ -311,18 +311,19 @@ const renderButtonIcon = (button: Button, layout: ButtonLayout, simpleIcon?: Ico
   return [`<g transform="translate(${x} ${y}) scale(${svgNumber(factor)})">`, ...artwork, "</g>"]
 }
 
+const renderDivider = (button: Button, { hasIcon, split, dividerX }: ButtonLayout): string[] => {
+  if (!hasIcon || split) return []
+  const stroke = button.divider === defaults.divider ? "#3A3A3A" : button.divider
+  return [`<line x1="${dividerX}" y1="5" x2="${dividerX}" y2="29" stroke="${stroke}" stroke-opacity="0.6"/>`]
+}
+
 export const renderButton = (button: Button, simpleIcon?: IconGeometry): string => {
   const layout = buttonLayout(button)
   const { paddingX, paddingY } = button
   const lines = [renderSvgRoot(button, layout), ...renderBackground(button, layout)]
   const padded = paddingX !== 0 || paddingY !== 0
   if (padded) lines.push(`<g transform="translate(${paddingX} ${paddingY})">`)
-  if (layout.hasIcon && !layout.split) {
-    const divider = button.divider === defaults.divider ? "#3A3A3A" : button.divider
-    lines.push(
-      `<line x1="${layout.dividerX}" y1="5" x2="${layout.dividerX}" y2="29" stroke="${divider}" stroke-opacity="0.6"/>`,
-    )
-  }
+  lines.push(...renderDivider(button, layout))
   lines.push(...renderButtonIcon(button, layout, simpleIcon), renderButtonLabel(button, layout))
   if (padded) lines.push("</g>")
   lines.push("</svg>", "")
