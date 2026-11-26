@@ -92,7 +92,8 @@ test("the generated button URL round-trips tiny decimal values through the API",
 
 test("fixed dimensions override scale while preserving the viewBox", async () => {
   const button = parseButton(new URLSearchParams("scale=2&width=240.50&height=74"))
-  const url = buttonUrl("https://button.example", button)!
+  const url = buttonUrl("https://button.example", button)
+  assert.ok(url)
   assert.equal(url.search, "?scale=2&width=240.5&height=74")
 
   const response = await server.fetch(url.href)
