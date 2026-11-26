@@ -270,7 +270,7 @@ const labelSvg = (label: string, x: number, width: number, fill: string, { fontS
   return `<text x="${x}" y="${textY}" fill="${fill}" font-family="system-ui, sans-serif" font-size="${fontSize}" font-weight="600" direction="ltr" unicode-bidi="plaintext" xml:space="preserve" textLength="${width}" lengthAdjust="spacingAndGlyphs">${escapeXml(label)}</text>`
 }
 
-function renderButtonLabel(button: Button, layout: ButtonLayout): string {
+const renderButtonLabel = (button: Button, layout: ButtonLayout): string => {
   const { textX, textY, fontSize, textScale, textWidth, outlined } = layout
   const fill = button.fg === defaults.fg ? "#F2F2F2" : button.fg
   if (!outlined) return labelSvg(button.text, textX, textWidth, fill, layout)
