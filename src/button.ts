@@ -106,25 +106,37 @@ const readFixedSize = (params: URLSearchParams): Dimensions | undefined => {
   return { width, height }
 }
 
-export const parseButton = (params: URLSearchParams): Button => {
+const validateParamNames = (params: URLSearchParams) => {
   const seen = new Set<string>()
   for (const key of params.keys()) {
     if (!known.has(key)) throw new InputError(`Unknown parameter: ${key}.`)
     if (seen.has(key)) throw new InputError(`Duplicate parameter: ${key}.`)
     seen.add(key)
   }
+}
 
-  const text = readLabel(params.get("text") ?? defaults.text, "text")
-  const rev = params.get("rev") ?? defaults.rev
+const readRevision = (rev: string): string => {
   if (!/^[a-zA-Z\d._-]{0,64}$/.test(rev)) {
     throw new InputError("rev: use up to 64 ASCII letters, digits, periods, hyphens, or underscores.")
   }
-  const layout = params.get("layout") ?? defaults.layout
+  return rev
+}
+
+const readLayout = (layout: string): Button["layout"] => {
   if (layout !== "standard" && layout !== "split") {
     throw new InputError('layout: use "standard" or "split".')
   }
-  const fixedSize = readFixedSize(params)
+  return layout
+}
 
+const readNamedIcon = (name: string | null): Icon => {
+  if (name === null || name === "mastra") return { kind: "mastra" }
+  if (name === "none") return { kind: "none" }
+  if (!isSimpleIconSlug(name)) throw new InputError('icon: use "mastra", "none", or a lowercase Simple Icons slug.')
+  return { kind: "simple", slug: name }
+}
+
+const readIconParams = (params: URLSearchParams) => {
   const name = params.get("icon")
   const iconText = params.get("iconText")
   const path = params.get("iconPath")
@@ -136,22 +148,24 @@ export const parseButton = (params: URLSearchParams): Button => {
   if ((path === null) !== (box === null)) {
     throw new InputError("Provide iconPath and iconViewBox together.")
   }
+  return { name, iconText, path, box, source }
+}
 
-  let icon: Icon = { kind: "mastra" }
-  if (path !== null && box !== null) {
-    icon = { kind: "path", geometry: pathIcon(pathData(path).value, viewBox(box)) }
-  } else if (source !== null) {
-    icon = { kind: "svg", geometry: parseSvg(decodeIcon(source)) }
-  } else if (iconText !== null) {
-    icon = { kind: "text", label: readLabel(iconText, "iconText") }
-  } else if (name === "none") {
-    icon = { kind: "none" }
-  } else if (name !== null && name !== "mastra") {
-    if (!isSimpleIconSlug(name)) {
-      throw new InputError('icon: use "mastra", "none", or a lowercase Simple Icons slug.')
-    }
-    icon = { kind: "simple", slug: name }
-  }
+const readIcon = (params: URLSearchParams): Icon => {
+  const { name, iconText, path, box, source } = readIconParams(params)
+  if (path !== null && box !== null) return { kind: "path", geometry: pathIcon(pathData(path).value, viewBox(box)) }
+  if (source !== null) return { kind: "svg", geometry: parseSvg(decodeIcon(source)) }
+  if (iconText !== null) return { kind: "text", label: readLabel(iconText, "iconText") }
+  return readNamedIcon(name)
+}
+
+export const parseButton = (params: URLSearchParams): Button => {
+  validateParamNames(params)
+  const text = readLabel(params.get("text") ?? defaults.text, "text")
+  const rev = readRevision(params.get("rev") ?? defaults.rev)
+  const layout = readLayout(params.get("layout") ?? defaults.layout)
+  const fixedSize = readFixedSize(params)
+  const icon = readIcon(params)
 
   function readColor(key: "bg" | "iconBg" | "fg" | "border" | "divider" | "iconColor") {
     return color(params.get(key) ?? defaults[key], key)
