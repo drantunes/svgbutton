@@ -39,7 +39,6 @@ const copyTooltip = document.querySelector<HTMLElement>("#copy-tooltip")!
 const download = document.querySelector<HTMLButtonElement>("#download")!
 const importFile = form.elements.namedItem("importFile") as HTMLInputElement
 const importSource = form.elements.namedItem("importSource") as HTMLTextAreaElement
-const simpleIcons = setupSimpleIconsPicker(render)
 
 const fields = [
   "text",
@@ -135,7 +134,7 @@ const setSizeParams = (params: URLSearchParams) => {
   }
 }
 
-function render() {
+const render = () => {
   const source = field("source")
   const split = field("layout") === "split"
   const hasIcon = source !== "none"
@@ -207,6 +206,8 @@ function render() {
     updateOutput()
   }
 }
+
+const simpleIcons = setupSimpleIconsPicker(render)
 
 async function readIcon(stream: ReadableStream<Uint8Array> | null): Promise<string> {
   if (!stream) throw new InputError("The SVG file is empty.")
