@@ -90,7 +90,7 @@ function readLabel(value: string, field: string): string {
 function readFixedSize(params: URLSearchParams): Dimensions | undefined {
   const rawWidth = params.get("width")
   const rawHeight = params.get("height")
-  if (rawWidth === null && rawHeight === null) return
+  if (rawWidth === null && rawHeight === null) return undefined
   if (rawWidth === null || rawHeight === null) throw new InputError("Provide width and height together.")
 
   const { min, max } = fixedSizeRange
