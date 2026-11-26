@@ -88,12 +88,12 @@ function readLabel(value: string, field: string): string {
 }
 
 const readFixedSize = (params: URLSearchParams): Dimensions | undefined => {
-  const rawWidth = params.get("width")
-  const rawHeight = params.get("height")
-  if (rawWidth === null && rawHeight === null) return undefined
-  if (rawWidth === null || rawHeight === null) throw new InputError("Provide width and height together.")
+  const supplied = [params.get("width"), params.get("height")].filter((value) => value !== null)
+  if (supplied.length === 0) return undefined
+  if (supplied.length !== 2) throw new InputError("Provide width and height together.")
 
   const { min, max } = fixedSizeRange
+  const [rawWidth, rawHeight] = supplied
   const width = decimal(rawWidth, "Width", min, max)
   const height = decimal(rawHeight, "Height", min, max)
   if (Math.ceil(width) * Math.ceil(height) > MAX_FIXED_SIZE_PIXELS) {
