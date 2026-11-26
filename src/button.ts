@@ -22,7 +22,7 @@ import {
   SVG_NS,
 } from "./values.ts"
 
-const keys = [
+const buttonFields = [
   "text",
   "fontSize",
   "paddingX",
@@ -37,17 +37,19 @@ const keys = [
   "divider",
   "iconColor",
   "iconSize",
+] as const
+const scaleAndRevision = ["scale", "rev"] as const
+const known = new Set<string>([
+  ...buttonFields,
   "icon",
   "iconText",
   "iconPath",
   "iconViewBox",
   "iconSvg",
-  "scale",
-  "rev",
+  ...scaleAndRevision,
   "width",
   "height",
-] as const
-const known = new Set<string>(keys)
+])
 
 type Icon =
   | { kind: "mastra" }
@@ -337,35 +339,39 @@ function formatDecimal(value: number): string {
   return "0." + "0".repeat(Number(exponent) - 1) + mantissa.replace(".", "")
 }
 
+const appendButtonFields = (params: URLSearchParams, button: Button, fields: readonly (keyof typeof defaults)[]) => {
+  for (const field of fields) {
+    const value = button[field]
+    if (value !== defaults[field]) params.set(field, typeof value === "number" ? formatDecimal(value) : value)
+  }
+}
+
+const appendIconGeometry = (params: URLSearchParams, icon: Extract<Icon, { geometry: IconGeometry }>): boolean => {
+  const { geometry } = icon
+  if (icon.kind === "path") {
+    params.set("iconPath", geometry.root.children[0].attributes.d)
+    params.set("iconViewBox", geometry.viewBox.join(" "))
+    return true
+  }
+  const source = normalizedSvg(geometry)
+  if (byteLength(source) > MAX_URL_BYTES) return false
+  params.set("iconSvg", encodeIcon(source))
+  return true
+}
+
+const appendIconParams = (params: URLSearchParams, icon: Icon): boolean => {
+  if ("geometry" in icon) return appendIconGeometry(params, icon)
+  if (icon.kind === "text") params.set("iconText", icon.label)
+  if (icon.kind === "simple") params.set("icon", icon.slug)
+  if (icon.kind === "none") params.set("icon", "none")
+  return true
+}
+
 export const buttonUrl = (origin: string, button: Button): URL | null => {
   const url = new URL(BUTTON_PATH, origin)
-  for (const key of keys) {
-    if (key === "icon") {
-      if (button.icon.kind === "none") url.searchParams.set(key, "none")
-      if (button.icon.kind === "simple") url.searchParams.set(key, button.icon.slug)
-    }
-    if (key === "iconText" && button.icon.kind === "text") url.searchParams.set(key, button.icon.label)
-    if ("geometry" in button.icon) {
-      if (key === "iconPath" && button.icon.kind === "path") {
-        url.searchParams.set(key, button.icon.geometry.root.children[0].attributes.d)
-      }
-      if (key === "iconViewBox" && button.icon.kind === "path") {
-        url.searchParams.set(key, button.icon.geometry.viewBox.join(" "))
-      }
-      if (key === "iconSvg" && button.icon.kind === "svg") {
-        const source = normalizedSvg(button.icon.geometry)
-        if (byteLength(source) > MAX_URL_BYTES) return null
-        url.searchParams.set(key, encodeIcon(source))
-      }
-    }
-    if (key in defaults) {
-      const field = key as keyof typeof defaults
-      const value = button[field]
-      if (value !== defaults[field]) {
-        url.searchParams.set(key, typeof value === "number" ? formatDecimal(value) : value)
-      }
-    }
-  }
+  appendButtonFields(url.searchParams, button, buttonFields)
+  if (!appendIconParams(url.searchParams, button.icon)) return null
+  appendButtonFields(url.searchParams, button, scaleAndRevision)
   if (button.fixedSize) {
     url.searchParams.set("width", String(button.fixedSize.width))
     url.searchParams.set("height", String(button.fixedSize.height))
